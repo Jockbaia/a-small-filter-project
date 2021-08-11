@@ -35,8 +35,28 @@ def change_lips(img, lm):
     return cv2.addWeighted(img, 1, mask, 0.2, 0.0, img)
 
 
-def apply_mask(flag, image, landmarks):   #flag per identificare la parte del viso da modificare (es. 1 - naso, 2 - bocca, ecc...)
+def put_glasses(img, lm):
+    left_stick = [(lm.part(26).x, lm.part(26).y),
+                  (lm.part(16).x, lm.part(16).y),
+                  (int((lm.part(16).x + lm.part(15).x) / 2),
+                   int((lm.part(16).y + lm.part(15).y) / 2))]  # manca un punto!
+    right_stick = [(lm.part(17).x, lm.part(17).y),
+                   (lm.part(0).x, lm.part(0).y),
+                   (int((lm.part(0).x + lm.part(1).x) / 2), int((lm.part(0).y + lm.part(1).y) / 2))]  # manca un punto!
+    glass = [(lm.part(26).x, lm.part(24).y),  # mancano due punti!
+             (lm.part(17).x, lm.part(19).y)]
+    mask = np.zeros(img.shape, dtype=np.uint8)
+    cv2.fillPoly(mask, np.array([left_stick]), (0, 0, 80))
+    cv2.fillPoly(mask, np.array([right_stick]), (0, 0, 80))
+    cv2.fillPoly(mask, np.array([glass]), (51, 255, 153))
+    return cv2.addWeighted(img, 1, mask, 0.9, 0.0, img)
+
+
+def apply_mask(flag, image,
+               landmarks):  # flag per identificare la parte del viso da modificare (es. 1 - naso, 2 - bocca, ecc...)
     if flag == 2:
+        res = put_glasses(image, landmarks)
+    if flag == 1:
         res = change_lips(image, landmarks)
     else:
         res = image
@@ -68,7 +88,7 @@ def main():
         faces = landmark_detector(frame)
 
         if keyboard.is_pressed('q'):
-            viewmode = (viewmode + 1) % 2
+            viewmode = (viewmode + 1) % 3
         if keyboard.is_pressed('w'):
             polygons = (polygons + 1) % 2
 
@@ -76,7 +96,6 @@ def main():
             landmarks = landmark_predictor(frame, face)
 
             if polygons:
-
                 left = [(landmarks.part(16).x, landmarks.part(16).y),
                         (landmarks.part(24).x, landmarks.part(24).y),
                         (landmarks.part(22).x, landmarks.part(22).y),
@@ -94,17 +113,20 @@ def main():
                 cv2.fillPoly(frame, np.array([right]), (51, 255, 153))
 
             for i in range(68):
-                if viewmode:
+                if viewmode == 1:
                     frame = cv2.circle(frame, (landmarks.part(i).x, landmarks.part(i).y), radius=2, color=(0, 0, 255),
                                        thickness=1)
-                else:
-                    frame = cv2.putText(frame, str(i), (landmarks.part(i).x, landmarks.part(i).y), cv2.FONT_HERSHEY_SIMPLEX,
+                if viewmode == 2:
+                    frame = cv2.putText(frame, str(i), (landmarks.part(i).x, landmarks.part(i).y),
+                                        cv2.FONT_HERSHEY_SIMPLEX,
                                         0.2, (211, 211, 211), 1, cv2.LINE_AA, False)
+                else:
+                    continue
 
             gray_frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
             final_frame = apply_mask(2, frame, landmarks)
 
-        #cv2.imshow("main", frame)
+        # cv2.imshow("main", frame)
         cv2.imshow("main", final_frame)
         cv2.waitKey(1)
 
