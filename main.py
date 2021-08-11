@@ -36,19 +36,26 @@ def change_lips(img, lm):
 
 
 def put_glasses(img, lm):
-    left_stick = [(lm.part(26).x, lm.part(26).y),
-                  (lm.part(16).x, lm.part(16).y),
-                  (int((lm.part(16).x + lm.part(15).x) / 2),
-                   int((lm.part(16).y + lm.part(15).y) / 2))]  # manca un punto!
-    right_stick = [(lm.part(17).x, lm.part(17).y),
-                   (lm.part(0).x, lm.part(0).y),
-                   (int((lm.part(0).x + lm.part(1).x) / 2), int((lm.part(0).y + lm.part(1).y) / 2))]  # manca un punto!
-    glass = [(lm.part(26).x, lm.part(24).y),  # mancano due punti!
-             (lm.part(17).x, lm.part(19).y)]
+    left_stick = [(lm.part(16).x, lm.part(16).y),
+                  (int((lm.part(16).x + lm.part(15).x) / 2), int((lm.part(16).y + lm.part(15).y) / 2)),
+                  (lm.part(26).x, lm.part(26).y),
+                  (lm.part(26).x, lm.part(24).y)]
+    right_stick = [(lm.part(0).x, lm.part(0).y),
+                   (int((lm.part(0).x + lm.part(1).x) / 2), int((lm.part(0).y + lm.part(1).y) / 2)),
+                   (lm.part(17).x, lm.part(17).y),
+                   (lm.part(17).x, lm.part(19).y)]
+    glass = [(lm.part(26).x, lm.part(24).y),
+             (lm.part(17).x, lm.part(19).y),
+             (lm.part(17).x, lm.part(1).y), # da rivedere
+             (lm.part(26).x, lm.part(15).y)] # da rivedere
+    nose = [(lm.part(27).x, lm.part(27).y),
+            (lm.part(31).x, lm.part(31).y),
+            (lm.part(35).x, lm.part(35).y)]
     mask = np.zeros(img.shape, dtype=np.uint8)
-    cv2.fillPoly(mask, np.array([left_stick]), (0, 0, 80))
-    cv2.fillPoly(mask, np.array([right_stick]), (0, 0, 80))
+    cv2.fillPoly(mask, np.array([left_stick]), (51, 255, 153))
+    cv2.fillPoly(mask, np.array([right_stick]), (51, 255, 153))
     cv2.fillPoly(mask, np.array([glass]), (51, 255, 153))
+    cv2.fillPoly(mask, np.array([nose]), (0, 0, 0))
     return cv2.addWeighted(img, 1, mask, 0.9, 0.0, img)
 
 
