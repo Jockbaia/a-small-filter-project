@@ -59,12 +59,28 @@ def put_glasses(img, lm):
     return cv2.addWeighted(img, 1, mask, 0.9, 0.0, img)
 
 
+def add_piercing(img, lm):
+    piercing = cv2.imread("piercing.png")
+    mask = np.zeros(img.shape)
+    eyebrow_up = (lm.part(25).x, lm.part(25).y)
+    ref_pt = (int((lm.part(45).x + lm.part(44).x)/2), int((lm.part(44).y + lm.part(45).y)/2))
+    height = int((ref_pt[1] - eyebrow_up[1])/3)
+    width = height
+    piercing = cv2.resize(piercing, (width, height))
+    roi = mask[eyebrow_up[1]: eyebrow_up[1] + height, eyebrow_up[0]: eyebrow_up[0] + width, :]
+    cv2.addWeighted(piercing, 1, roi, 1, 0.0, roi)
+    mask[eyebrow_up[1]: eyebrow_up[1] + height, eyebrow_up[0]: eyebrow_up[0] + width, :] = roi
+    return cv2.add(img, mask)
+
+
 def apply_mask(flag, image,
                landmarks):  # flag per identificare la parte del viso da modificare (es. 1 - naso, 2 - bocca, ecc...)
-    if flag == 2:
-        res = put_glasses(image, landmarks)
     if flag == 1:
         res = change_lips(image, landmarks)
+    elif flag == 2:
+        res = put_glasses(image, landmarks)
+    elif flag == 3:
+        res = add_piercing(image, landmarks)
     else:
         res = image
     return res
@@ -131,7 +147,7 @@ def main():
                     continue
 
             gray_frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-            final_frame = apply_mask(2, frame, landmarks)
+            final_frame = apply_mask(3, frame, landmarks)
 
         # cv2.imshow("main", frame)
         cv2.imshow("main", final_frame)
