@@ -61,7 +61,7 @@ def put_glasses(img, lm):
 
 def add_piercing(img, lm):
     piercing = cv2.imread("piercing.png")
-    mask = np.zeros(img.shape)
+    mask = np.zeros(img.shape, dtype=np.uint8)
     eyebrow_up = (lm.part(25).x, lm.part(25).y)
     ref_pt = (int((lm.part(45).x + lm.part(44).x)/2), int((lm.part(44).y + lm.part(45).y)/2))
     height = int((ref_pt[1] - eyebrow_up[1])/3)
