@@ -67,10 +67,8 @@ def add_piercing(img, lm):
     height = int((ref_pt[1] - eyebrow_up[1])/3)
     width = height
     piercing = cv2.resize(piercing, (width, height))
-    roi = mask[eyebrow_up[1]: eyebrow_up[1] + height, eyebrow_up[0]: eyebrow_up[0] + width, :]
-    cv2.addWeighted(piercing, 1, roi, 1, 0.0, roi)
-    mask[eyebrow_up[1]: eyebrow_up[1] + height, eyebrow_up[0]: eyebrow_up[0] + width, :] = roi
-    return cv2.add(img, mask)
+    img[ref_pt[0]:ref_pt[0]+width, eyebrow_up[1]:eyebrow_up[1]+height, :] = piercing
+    return img
 
 
 def apply_mask(flag, image,
