@@ -59,12 +59,12 @@ def put_glasses(img, lm):
     return cv2.addWeighted(img, 1, mask, 0.9, 0.0, img)
 
 
-def add_piercing(img, lm):
+def add_eyebrow_piercing(img, lm):
     piercing = cv2.imread("piercing.png")
     mask = np.zeros(img.shape, dtype=np.uint8)
     eyebrow_up = (lm.part(25).x, lm.part(25).y)
     ref_pt = (int((lm.part(45).x + lm.part(44).x)/2), int((lm.part(44).y + lm.part(45).y)/2))
-    height = int((ref_pt[1] - eyebrow_up[1])/3)
+    height = int((ref_pt[1] - eyebrow_up[1])/2)
     width = height
     piercing = cv2.resize(piercing, (width, height))
     roi = mask[eyebrow_up[1]:eyebrow_up[1]+height, ref_pt[0]:ref_pt[0]+width, :]
@@ -72,7 +72,7 @@ def add_piercing(img, lm):
     #roi[0] = cv2.add(roi[0], piercing[0])
     #roi[1] = cv2.add(roi[1], piercing[1])
     #roi[2] = cv2.add(roi[2], piercing[2])
-    mask[eyebrow_up[1]:eyebrow_up[1]+height, ref_pt[0]:ref_pt[0]+width, :] = roi
+    mask[eyebrow_up[1]:eyebrow_up[1]+height, ref_pt[0]+int(width/2):ref_pt[0]+width, :] = roi[:, int(width/2):, :]
     res = cv2.add(img, mask)
     #res[0] = cv2.add(img[0], mask[0])
     #res[1] = cv2.add(img[1], mask[1])
@@ -81,13 +81,13 @@ def add_piercing(img, lm):
 
 
 def apply_mask(flag, image,
-               landmarks):  # flag per identificare la parte del viso da modificare (es. 1 - naso, 2 - bocca, ecc...)
+               landmarks):  # flag per identificare il filtro da applicare
     if flag == 1:
         res = change_lips(image, landmarks)
     elif flag == 2:
         res = put_glasses(image, landmarks)
     elif flag == 3:
-        res = add_piercing(image, landmarks)
+        res = add_eyebrow_piercing(image, landmarks)
     else:
         res = image
     return res
