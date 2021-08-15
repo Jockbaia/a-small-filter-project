@@ -30,8 +30,8 @@ def change_lips(img, lm):
                  (lm.part(67).x, lm.part(67).y),
                  (lm.part(60).x, lm.part(60).y)]
     mask = np.zeros(img.shape, dtype=np.uint8)
-    cv2.fillPoly(mask, np.array([upper_lip]), (0, 0, 80))
-    cv2.fillPoly(mask, np.array([lower_lip]), (0, 0, 80))
+    cv2.fillPoly(mask, np.array([upper_lip]), (0, 0, 120))
+    cv2.fillPoly(mask, np.array([lower_lip]), (0, 0, 120))
     return cv2.addWeighted(img, 1, mask, 0.2, 0.0, img)
 
 
@@ -46,8 +46,8 @@ def put_glasses(img, lm):
                    (lm.part(17).x, lm.part(19).y)]
     glass = [(lm.part(26).x, lm.part(24).y),
              (lm.part(17).x, lm.part(19).y),
-             (lm.part(17).x, lm.part(1).y), # da rivedere
-             (lm.part(26).x, lm.part(15).y)] # da rivedere
+             (lm.part(17).x, lm.part(1).y),  # da rivedere
+             (lm.part(26).x, lm.part(15).y)]  # da rivedere
     nose = [(lm.part(27).x, lm.part(27).y),
             (lm.part(31).x, lm.part(31).y),
             (lm.part(35).x, lm.part(35).y)]
@@ -63,20 +63,35 @@ def add_eyebrow_piercing(img, lm):
     piercing = cv2.imread("piercing.png")
     mask = np.zeros(img.shape, dtype=np.uint8)
     eyebrow_up = (lm.part(25).x, lm.part(25).y)
-    ref_pt = (int((lm.part(45).x + lm.part(44).x)/2), int((lm.part(44).y + lm.part(45).y)/2))
-    height = int((ref_pt[1] - eyebrow_up[1])/2)
+    ref_pt = (int((lm.part(45).x + lm.part(44).x) / 2), int((lm.part(44).y + lm.part(45).y) / 2))
+    height = int((ref_pt[1] - eyebrow_up[1]) / 2)
     width = height
+    center = (int((eyebrow_up[0] + ref_pt[0]) / 2), int((eyebrow_up[1] + ref_pt[1]) / 2))
     piercing = cv2.resize(piercing, (width, height))
-    roi = mask[eyebrow_up[1]:eyebrow_up[1]+height, ref_pt[0]:ref_pt[0]+width, :]
+    roi = mask[center[1] - height:center[1], center[0]:center[0] + width, :]
     roi = cv2.add(roi, piercing)
-    #roi[0] = cv2.add(roi[0], piercing[0])
-    #roi[1] = cv2.add(roi[1], piercing[1])
-    #roi[2] = cv2.add(roi[2], piercing[2])
-    mask[eyebrow_up[1]:eyebrow_up[1]+height, ref_pt[0]+int(width/2):ref_pt[0]+width, :] = roi[:, int(width/2):, :]
+    mask[center[1] - height:center[1], center[0] + int(width / 2):center[0] + width, :] = roi[:, int(width / 2):, :]
     res = cv2.add(img, mask)
-    #res[0] = cv2.add(img[0], mask[0])
-    #res[1] = cv2.add(img[1], mask[1])
-    #res[2] = cv2.add(img[2], mask[2])
+    return res
+
+
+def add_septum(img, lm):
+    piercing = cv2.imread("piercing.png")
+    mask = np.zeros(img.shape, dtype=np.uint8)
+    midnose_left = (lm.part(32).x, lm.part(32).y)
+    midnose_right = (lm.part(34).x, lm.part(34).y)
+    nosetip = (lm.part(30).x, lm.part(30).y)
+    width = midnose_right[0] - midnose_left[0]
+    half_width = int(width / 2)
+    center_upper_lip = (lm.part(51).x, lm.part(51).y)
+    height = int((center_upper_lip[1] - nosetip[1]) / 2)
+    one_third_height = int(height / 3)
+    center = (midnose_left[0] + half_width, nosetip[1] + (height - one_third_height))
+    piercing = cv2.resize(piercing, (width, height))
+    roi = mask[center[1] - one_third_height:center[1] + (height - one_third_height), center[0] - half_width:center[0] + (width - half_width), :]
+    roi = cv2.add(roi, piercing)
+    mask[center[1]:center[1] + (height - one_third_height), center[0] - half_width:center[0] + (width - half_width), :] = roi[one_third_height:, :, :]
+    res = cv2.add(img, mask)
     return res
 
 
@@ -88,6 +103,8 @@ def apply_mask(flag, image,
         res = put_glasses(image, landmarks)
     elif flag == 3:
         res = add_eyebrow_piercing(image, landmarks)
+    elif flag == 4:
+        res = add_septum(image, landmarks)
     else:
         res = image
     return res
@@ -98,6 +115,7 @@ def main():
     landmark_predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
     viewmode = 1
     polygons = 0
+    image_filter = 0
 
     vid_capture = cv2.VideoCapture(0)
     if not vid_capture.isOpened():
@@ -121,6 +139,8 @@ def main():
             viewmode = (viewmode + 1) % 3
         if keyboard.is_pressed('w'):
             polygons = (polygons + 1) % 2
+        if keyboard.is_pressed('+'):
+            image_filter = (image_filter + 1) % 7
 
         for face in faces:
             landmarks = landmark_predictor(frame, face)
@@ -154,7 +174,7 @@ def main():
                     continue
 
             gray_frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-            final_frame = apply_mask(3, frame, landmarks)
+            final_frame = apply_mask(image_filter, frame, landmarks)
 
         # cv2.imshow("main", frame)
         cv2.imshow("main", final_frame)
