@@ -1,7 +1,9 @@
 import cv2
 import dlib
 import keyboard
+import matplotlib
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 def change_lips(img, lm):
@@ -36,27 +38,27 @@ def change_lips(img, lm):
 
 
 def put_glasses(img, lm):
-    left_stick = [(lm.part(16).x, lm.part(16).y),
-                  (int((lm.part(16).x + lm.part(15).x) / 2), int((lm.part(16).y + lm.part(15).y) / 2)),
-                  (lm.part(26).x, lm.part(26).y),
-                  (lm.part(26).x, lm.part(24).y)]
-    right_stick = [(lm.part(0).x, lm.part(0).y),
-                   (int((lm.part(0).x + lm.part(1).x) / 2), int((lm.part(0).y + lm.part(1).y) / 2)),
-                   (lm.part(17).x, lm.part(17).y),
-                   (lm.part(17).x, lm.part(19).y)]
-    glass = [(lm.part(26).x, lm.part(24).y),
-             (lm.part(17).x, lm.part(19).y),
-             (lm.part(17).x, lm.part(1).y),  # da rivedere
-             (lm.part(26).x, lm.part(15).y)]  # da rivedere
-    nose = [(lm.part(27).x, lm.part(27).y),
-            (lm.part(31).x, lm.part(31).y),
-            (lm.part(35).x, lm.part(35).y)]
-    mask = np.zeros(img.shape, dtype=np.uint8)
-    cv2.fillPoly(mask, np.array([left_stick]), (51, 255, 153))
-    cv2.fillPoly(mask, np.array([right_stick]), (51, 255, 153))
-    cv2.fillPoly(mask, np.array([glass]), (51, 255, 153))
-    cv2.fillPoly(mask, np.array([nose]), (0, 0, 0))
-    return cv2.addWeighted(img, 1, mask, 0.9, 0.0, img)
+    filter_mask = cv2.imread('testimg.jpg', cv2.IMREAD_UNCHANGED)
+
+    pt_A = [lm.part(17).x, lm.part(19).y]
+    pt_B = [lm.part(26).x, lm.part(24).y]
+    pt_C = [lm.part(17).x, lm.part(1).y]
+    pt_D = [lm.part(26).x, lm.part(15).y]
+
+    width_AD = np.sqrt(((pt_A[0] - pt_D[0]) ** 2) + ((pt_A[1] - pt_D[1]) ** 2))
+    width_BC = np.sqrt(((pt_B[0] - pt_C[0]) ** 2) + ((pt_B[1] - pt_C[1]) ** 2))
+    maxWidth = max(int(width_AD), int(width_BC))
+    height_AB = np.sqrt(((pt_A[0] - pt_B[0]) ** 2) + ((pt_A[1] - pt_B[1]) ** 2))
+    height_CD = np.sqrt(((pt_C[0] - pt_D[0]) ** 2) + ((pt_C[1] - pt_D[1]) ** 2))
+    maxHeight = max(int(height_AB), int(height_CD))
+
+    input_pts = np.float32([[0, 0], [filter_mask.shape[1], 0], [0, filter_mask.shape[0]], [filter_mask.shape[1], filter_mask.shape[0]]])
+    output_pts = np.float32([pt_A, pt_B, pt_C, pt_D])
+
+    M = cv2.getPerspectiveTransform(input_pts, output_pts)
+    out = cv2.warpPerspective(filter_mask, M, (img.shape[1], img.shape[0]), flags=cv2.INTER_LINEAR)
+    res = cv2.addWeighted(img, 1, out, 1, 0)
+    return res
 
 
 def add_eyebrow_piercing(img, lm):
@@ -88,9 +90,11 @@ def add_septum(img, lm):
     one_third_height = int(height / 3)
     center = (midnose_left[0] + half_width, nosetip[1] + (height - one_third_height))
     piercing = cv2.resize(piercing, (width, height))
-    roi = mask[center[1] - one_third_height:center[1] + (height - one_third_height), center[0] - half_width:center[0] + (width - half_width), :]
+    roi = mask[center[1] - one_third_height:center[1] + (height - one_third_height),
+          center[0] - half_width:center[0] + (width - half_width), :]
     roi = cv2.add(roi, piercing)
-    mask[center[1]:center[1] + (height - one_third_height), center[0] - half_width:center[0] + (width - half_width), :] = roi[one_third_height:, :, :]
+    mask[center[1]:center[1] + (height - one_third_height), center[0] - half_width:center[0] + (width - half_width),
+    :] = roi[one_third_height:, :, :]
     res = cv2.add(img, mask)
     return res
 
