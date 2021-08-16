@@ -99,6 +99,27 @@ def add_septum(img, lm):
     return res
 
 
+def add_freckles(img, lm):
+    freckles = cv2.imread("lentiggini_cut.png")
+    left_cheekbone = (lm.part(0).x, lm.part(0).y)
+    right_cheekbone = (lm.part(16).x, lm.part(16).y)
+    upper_pt = (int((left_cheekbone[0] + right_cheekbone[0])/2), int((left_cheekbone[1] + right_cheekbone[1])/2))
+    down_left = (lm.part(3).x, lm.part(3).y)
+    down_right = (lm.part(13).x, lm.part(13).y)
+    lower_pt = (int((down_left[0] + down_right[0])/2), int((down_left[1] + down_right[1])/2))
+    mask = np.zeros(img.shape, dtype=np.uint8)
+    width = right_cheekbone[0] - left_cheekbone[0]
+    height = lower_pt[1] - upper_pt[1]
+    freckles = cv2.resize(freckles, (width, height))
+    roi = mask[upper_pt[1]:lower_pt[1], left_cheekbone[0]:right_cheekbone[0], :]
+    roi = cv2.add(roi, freckles)
+    mask[upper_pt[1]:lower_pt[1], left_cheekbone[0]:right_cheekbone[0], :] = roi
+    res = cv2.add(img, mask)
+    return res
+    #vertices = [left_cheekbone, right_cheekbone, down_right, down_left]
+    #cv2.fillPoly(mask, np.array([vertices]), (255, 255, 255))
+
+
 def apply_mask(flag, image,
                landmarks):  # flag per identificare il filtro da applicare
     if flag == 1:
@@ -109,6 +130,8 @@ def apply_mask(flag, image,
         res = add_eyebrow_piercing(image, landmarks)
     elif flag == 4:
         res = add_septum(image, landmarks)
+    elif flag == 5:
+        res = add_freckles(image, landmarks)
     else:
         res = image
     return res
@@ -119,7 +142,7 @@ def main():
     landmark_predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
     viewmode = 1
     polygons = 0
-    image_filter = 0
+    image_filter = 5
 
     vid_capture = cv2.VideoCapture(0)
     if not vid_capture.isOpened():
