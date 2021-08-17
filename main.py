@@ -71,9 +71,9 @@ def add_eyebrow_piercing(img, lm):
     half_width = int(width/2)
     center = (int((eyebrow_up[0] + ref_pt[0]) / 2), int((eyebrow_up[1] + ref_pt[1]) / 2))
     piercing = cv2.resize(piercing, (width, height))
-    roi = mask[center[1] - height:center[1], center[0]:center[0] + half_width, :]
-    roi = cv2.add(roi, piercing[:, (width-half_width):, :])
-    mask[center[1] - height:center[1], center[0]:center[0] + half_width, :] = roi
+    roi = mask[center[1] - height:center[1], center[0] + half_width:center[0] + width, :]
+    roi = cv2.add(roi, piercing[:, half_width:, :])
+    mask[center[1] - height:center[1], center[0] + half_width:center[0] + width, :] = roi
     res = cv2.add(img, mask)
     return res
 
@@ -101,25 +101,28 @@ def add_septum(img, lm):
 
 
 def add_freckles(img, lm):
-    freckles = cv2.imread("lentiggini_cut.png")
+    freckles = cv2.imread("lentiggini3_cut.png")
     #freckles = cv2.cvtColor(freckles, cv2.COLOR_BGR2RGB)
     left_cheekbone = (lm.part(0).x, lm.part(0).y)
     right_cheekbone = (lm.part(16).x, lm.part(16).y)
-    upper_pt = (int((left_cheekbone[0] + right_cheekbone[0])/2), int((left_cheekbone[1] + right_cheekbone[1])/2))
+    #upper_pt = (int((left_cheekbone[0] + right_cheekbone[0])/2), int((left_cheekbone[1] + right_cheekbone[1])/2))
     down_left = (lm.part(3).x, lm.part(3).y)
     down_right = (lm.part(13).x, lm.part(13).y)
-    lower_pt = (int((down_left[0] + down_right[0])/2), int((down_left[1] + down_right[1])/2))
-    mask = np.zeros(img.shape, dtype=np.uint8)
-    width = right_cheekbone[0] - left_cheekbone[0]
-    height = lower_pt[1] - upper_pt[1]
-    freckles = cv2.resize(freckles, (width, height))
-    roi = mask[upper_pt[1]:lower_pt[1], left_cheekbone[0]:right_cheekbone[0], :]
-    roi = cv2.add(roi, freckles)
-    mask[upper_pt[1]:lower_pt[1], left_cheekbone[0]:right_cheekbone[0], :] = roi
-    res = cv2.add(img, mask)
+    #lower_pt = (int((down_left[0] + down_right[0])/2), int((down_left[1] + down_right[1])/2))
+    input_pts = np.float32([[0, 0], [freckles.shape[1], 0], [0, freckles.shape[0]], [freckles.shape[1], freckles.shape[0]]])
+    output_pts = np.float32([left_cheekbone, right_cheekbone, down_left, down_right])
+    transform = cv2.getPerspectiveTransform(input_pts, output_pts)
+    out = cv2.warpPerspective(freckles, transform, (img.shape[1], img.shape[0]), flags=cv2.INTER_LINEAR)
+    res = cv2.addWeighted(img, 1, out, 0.7, 0)
+    #mask = np.zeros(img.shape, dtype=np.uint8)
+    #width = right_cheekbone[0] - left_cheekbone[0]
+    #height = lower_pt[1] - upper_pt[1]
+    #freckles = cv2.resize(freckles, (width, height))
+    #roi = mask[upper_pt[1]:lower_pt[1], left_cheekbone[0]:right_cheekbone[0], :]
+    #roi = cv2.add(roi, freckles)
+    #mask[upper_pt[1]:lower_pt[1], left_cheekbone[0]:right_cheekbone[0], :] = roi
+    #res = cv2.add(img, mask)
     return res
-    #vertices = [left_cheekbone, right_cheekbone, down_right, down_left]
-    #cv2.fillPoly(mask, np.array([vertices]), (255, 255, 255))
 
 
 def apply_mask(flag, image,
@@ -144,7 +147,7 @@ def main():
     landmark_predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
     viewmode = 1
     polygons = 0
-    image_filter = 3
+    image_filter = 5
 
     vid_capture = cv2.VideoCapture(0)
     if not vid_capture.isOpened():
