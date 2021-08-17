@@ -66,11 +66,12 @@ def add_eyebrow_piercing(img, lm):
     ref_pt = (int((lm.part(45).x + lm.part(44).x) / 2), int((lm.part(44).y + lm.part(45).y) / 2))
     height = int((ref_pt[1] - eyebrow_up[1]) / 2)
     width = height
+    half_width = int(width/2)
     center = (int((eyebrow_up[0] + ref_pt[0]) / 2), int((eyebrow_up[1] + ref_pt[1]) / 2))
     piercing = cv2.resize(piercing, (width, height))
-    roi = mask[center[1] - height:center[1], center[0]:center[0] + width, :]
-    roi = cv2.add(roi, piercing)
-    mask[center[1] - height:center[1], center[0] + int(width / 2):center[0] + width, :] = roi[:, int(width / 2):, :]
+    roi = mask[center[1] - height:center[1], center[0]:center[0] + half_width, :]
+    roi = cv2.add(roi, piercing[:, (width-half_width):, :])
+    mask[center[1] - height:center[1], center[0]:center[0] + half_width, :] = roi
     res = cv2.add(img, mask)
     return res
 
@@ -97,6 +98,7 @@ def add_septum(img, lm):
 
 def add_freckles(img, lm):
     freckles = cv2.imread("lentiggini_cut.png")
+    #freckles = cv2.cvtColor(freckles, cv2.COLOR_BGR2RGB)
     left_cheekbone = (lm.part(0).x, lm.part(0).y)
     right_cheekbone = (lm.part(16).x, lm.part(16).y)
     upper_pt = (int((left_cheekbone[0] + right_cheekbone[0])/2), int((left_cheekbone[1] + right_cheekbone[1])/2))
@@ -138,7 +140,7 @@ def main():
     landmark_predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
     viewmode = 1
     polygons = 0
-    image_filter = 5
+    image_filter = 3
 
     vid_capture = cv2.VideoCapture(0)
     if not vid_capture.isOpened():
