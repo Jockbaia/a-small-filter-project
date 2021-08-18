@@ -37,19 +37,14 @@ def change_lips(img, lm):
     return cv2.addWeighted(img, 1, mask, 0.2, 0.0, img)
 
 
-def put_glasses(img, lm):
+def perspective_image(img, foreground_path, myPoints):
 
-    foreground = cv2.imread("glasses.png", cv2.IMREAD_UNCHANGED)
+    foreground = cv2.imread(foreground_path, cv2.IMREAD_UNCHANGED)
     background = img
     background = cv2.cvtColor(background, cv2.COLOR_RGB2RGBA)
 
-    pt_A = [lm.part(17).x, lm.part(19).y]
-    pt_B = [lm.part(26).x, lm.part(24).y]
-    pt_C = [lm.part(17).x, lm.part(1).y]
-    pt_D = [lm.part(26).x, lm.part(15).y]
-
     input_pts = np.float32([[0, 0], [foreground.shape[1], 0], [0, foreground.shape[0]], [foreground.shape[1], foreground.shape[0]]])
-    output_pts = np.float32([pt_A, pt_B, pt_C, pt_D])
+    output_pts = np.float32(myPoints)
 
     M = cv2.getPerspectiveTransform(input_pts, output_pts)
     foreground = cv2.warpPerspective(foreground, M, (img.shape[1], img.shape[0]), flags=cv2.INTER_LINEAR)
@@ -131,17 +126,33 @@ def add_freckles(img, lm):
 
 
 def apply_mask(flag, image,
-               landmarks):  # flag per identificare il filtro da applicare
+               lm):  # flag per identificare il filtro da applicare
     if flag == 1:
-        res = change_lips(image, landmarks)
+        res = change_lips(image, lm)
     elif flag == 2:
-        res = put_glasses(image, landmarks)
+
+        lens = [(lm.part(17).x, lm.part(19).y), (lm.part(26).x, lm.part(24).y), (lm.part(17).x, lm.part(1).y),
+                (lm.part(26).x, lm.part(15).y)]
+        left_stick = [(lm.part(15).x, lm.part(15).y),
+                      (lm.part(16).x, lm.part(16).y),
+                      (lm.part(26).x, lm.part(15).y),
+                      (lm.part(26).x, lm.part(24).y)]
+        right_stick = [(lm.part(1).x, lm.part(1).y),
+                       (lm.part(0).x, lm.part(0).y),
+                       (lm.part(17).x, lm.part(1).y),
+                       (lm.part(17).x, lm.part(19).y)]
+
+        res = image
+        res = perspective_image(res, "glasses.png", lens)
+        res = perspective_image(res, "stick.png", left_stick)
+        res = perspective_image(res, "stick.png", right_stick)
+
     elif flag == 3:
-        res = add_eyebrow_piercing(image, landmarks)
+        res = add_eyebrow_piercing(image, lm)
     elif flag == 4:
-        res = add_septum(image, landmarks)
+        res = add_septum(image, lm)
     elif flag == 5:
-        res = add_freckles(image, landmarks)
+        res = add_freckles(image, lm)
     else:
         res = image
     return res
