@@ -38,7 +38,8 @@ def change_lips(img, lm):
 
 
 def put_glasses(img, lm):
-    filter_mask = cv2.imread('testimg.jpg', cv2.IMREAD_UNCHANGED)
+    filter_mask = cv2.imread("gla.png", cv2.IMREAD_UNCHANGED)
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2RGBA)
 
     pt_A = [lm.part(17).x, lm.part(19).y]
     pt_B = [lm.part(26).x, lm.part(24).y]
