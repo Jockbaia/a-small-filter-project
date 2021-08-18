@@ -38,28 +38,32 @@ def change_lips(img, lm):
 
 
 def put_glasses(img, lm):
-    filter_mask = cv2.imread("gla.png", cv2.IMREAD_UNCHANGED)
-    img = cv2.cvtColor(img, cv2.COLOR_RGB2RGBA)
+
+    foreground = cv2.imread("glasses.png", cv2.IMREAD_UNCHANGED)
+    background = img
+    background = cv2.cvtColor(background, cv2.COLOR_RGB2RGBA)
 
     pt_A = [lm.part(17).x, lm.part(19).y]
     pt_B = [lm.part(26).x, lm.part(24).y]
     pt_C = [lm.part(17).x, lm.part(1).y]
     pt_D = [lm.part(26).x, lm.part(15).y]
 
-    width_AD = np.sqrt(((pt_A[0] - pt_D[0]) ** 2) + ((pt_A[1] - pt_D[1]) ** 2))
-    width_BC = np.sqrt(((pt_B[0] - pt_C[0]) ** 2) + ((pt_B[1] - pt_C[1]) ** 2))
-    maxWidth = max(int(width_AD), int(width_BC))
-    height_AB = np.sqrt(((pt_A[0] - pt_B[0]) ** 2) + ((pt_A[1] - pt_B[1]) ** 2))
-    height_CD = np.sqrt(((pt_C[0] - pt_D[0]) ** 2) + ((pt_C[1] - pt_D[1]) ** 2))
-    maxHeight = max(int(height_AB), int(height_CD))
-
-    input_pts = np.float32([[0, 0], [filter_mask.shape[1], 0], [0, filter_mask.shape[0]], [filter_mask.shape[1], filter_mask.shape[0]]])
+    input_pts = np.float32([[0, 0], [foreground.shape[1], 0], [0, foreground.shape[0]], [foreground.shape[1], foreground.shape[0]]])
     output_pts = np.float32([pt_A, pt_B, pt_C, pt_D])
 
     M = cv2.getPerspectiveTransform(input_pts, output_pts)
-    out = cv2.warpPerspective(filter_mask, M, (img.shape[1], img.shape[0]), flags=cv2.INTER_LINEAR)
-    res = cv2.addWeighted(img, 1, out, 1, 0)
-    return res
+    foreground = cv2.warpPerspective(foreground, M, (img.shape[1], img.shape[0]), flags=cv2.INTER_LINEAR)
+
+    alpha_background = background[:, :, 3] / 255.0
+    alpha_foreground = foreground[:, :, 3] / 255.0
+
+    for color in range(0, 3):
+        background[:, :, color] = alpha_foreground * foreground[:, :, color] + \
+                                  alpha_background * background[:, :, color] * (1 - alpha_foreground)
+
+    background[:, :, 3] = (1 - (1 - alpha_foreground) * (1 - alpha_background)) * 255
+
+    return background
 
 
 def add_eyebrow_piercing(img, lm):
