@@ -100,28 +100,26 @@ def add_septum(img, lm):
     return res
 
 
-def add_freckles(img, lm):
-    freckles = cv2.imread("lentiggini3_cut.png")
-    #freckles = cv2.cvtColor(freckles, cv2.COLOR_BGR2RGB)
+def cheek_filter(img, lm, filter_path):
     left_cheekbone = (lm.part(0).x, lm.part(0).y)
     right_cheekbone = (lm.part(16).x, lm.part(16).y)
-    #upper_pt = (int((left_cheekbone[0] + right_cheekbone[0])/2), int((left_cheekbone[1] + right_cheekbone[1])/2))
-    down_left = (lm.part(3).x, lm.part(3).y)
-    down_right = (lm.part(13).x, lm.part(13).y)
-    #lower_pt = (int((down_left[0] + down_right[0])/2), int((down_left[1] + down_right[1])/2))
-    input_pts = np.float32([[0, 0], [freckles.shape[1], 0], [0, freckles.shape[0]], [freckles.shape[1], freckles.shape[0]]])
+    down_left = (int((lm.part(3).x + lm.part(0).x) / 2), lm.part(3).y)
+    down_right = (int((lm.part(13).x + lm.part(16).x) / 2), lm.part(13).y)
     output_pts = np.float32([left_cheekbone, right_cheekbone, down_left, down_right])
-    transform = cv2.getPerspectiveTransform(input_pts, output_pts)
-    out = cv2.warpPerspective(freckles, transform, (img.shape[1], img.shape[0]), flags=cv2.INTER_LINEAR)
-    res = cv2.addWeighted(img, 1, out, 0.7, 0)
-    #mask = np.zeros(img.shape, dtype=np.uint8)
-    #width = right_cheekbone[0] - left_cheekbone[0]
-    #height = lower_pt[1] - upper_pt[1]
-    #freckles = cv2.resize(freckles, (width, height))
-    #roi = mask[upper_pt[1]:lower_pt[1], left_cheekbone[0]:right_cheekbone[0], :]
-    #roi = cv2.add(roi, freckles)
-    #mask[upper_pt[1]:lower_pt[1], left_cheekbone[0]:right_cheekbone[0], :] = roi
-    #res = cv2.add(img, mask)
+    res = perspective_image(img, filter_path, output_pts)
+    #transform = cv2.getPerspectiveTransform(input_pts, output_pts)
+    #out = cv2.warpPerspective(freckles, transform, (img.shape[1], img.shape[0]), flags=cv2.INTER_LINEAR)
+    #res = cv2.addWeighted(img, 1, out, 0.7, 0)
+    return res
+
+
+def add_beard(img, lm):
+    left_cheekbone = (lm.part(1).x, lm.part(1).y)
+    right_cheekbone = (lm.part(15).x, lm.part(15).y)
+    down_left = (lm.part(1).x, lm.part(8).y)
+    down_right = (lm.part(15).x, down_left[1])
+    output_pts = np.float32([left_cheekbone, right_cheekbone, down_left, down_right])
+    res = perspective_image(img, "beard.png", output_pts)  #todo: immagine migliore?
     return res
 
 
@@ -129,7 +127,7 @@ def apply_mask(flag, image,
                lm):  # flag per identificare il filtro da applicare
     if flag == 1:
         res = change_lips(image, lm)
-    elif flag == 2:
+    elif flag == 2:  # add glasses
 
         lens = [(lm.part(17).x, lm.part(19).y), (lm.part(26).x, lm.part(24).y), (lm.part(17).x, lm.part(1).y),
                 (lm.part(26).x, lm.part(15).y)]
@@ -152,7 +150,13 @@ def apply_mask(flag, image,
     elif flag == 4:
         res = add_septum(image, lm)
     elif flag == 5:
-        res = add_freckles(image, lm)
+        res = cheek_filter(image, lm, "lentiggini3_cut.png")
+    elif flag == 6:
+        res = cheek_filter(image, lm, "blush.png")
+    elif flag == 7:
+        res = cheek_filter(image, lm, "anime blush cut.png")
+    elif flag == 8:
+        res = add_beard(image, lm)
     else:
         res = image
     return res
@@ -188,7 +192,7 @@ def main():
         if keyboard.is_pressed('w'):
             polygons = (polygons + 1) % 2
         if keyboard.is_pressed('+'):
-            image_filter = (image_filter + 1) % 7
+            image_filter = (image_filter + 1) % 9
 
         for face in faces:
             landmarks = landmark_predictor(frame, face)
@@ -221,7 +225,6 @@ def main():
                 else:
                     continue
 
-            gray_frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
             final_frame = apply_mask(image_filter, frame, landmarks)
 
         # cv2.imshow("main", frame)
