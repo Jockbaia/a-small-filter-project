@@ -116,10 +116,29 @@ def cheek_filter(img, lm, filter_path):
 def add_beard(img, lm):
     left_cheekbone = (lm.part(1).x, lm.part(1).y)
     right_cheekbone = (lm.part(15).x, lm.part(15).y)
-    down_left = (lm.part(1).x, lm.part(8).y)
-    down_right = (lm.part(15).x, down_left[1])
+    down_left = (lm.part(2).x, int(lm.part(8).y * 1.05))
+    down_right = (lm.part(14).x, down_left[1])
     output_pts = np.float32([left_cheekbone, right_cheekbone, down_left, down_right])
-    res = perspective_image(img, "beard.png", output_pts)  #todo: immagine migliore?
+    res = perspective_image(img, "beard.png", output_pts)
+    return res
+
+
+def put_glasses(img, lm):
+    lens = [(lm.part(17).x, lm.part(19).y), (lm.part(26).x, lm.part(24).y), (lm.part(17).x, lm.part(1).y),
+            (lm.part(26).x, lm.part(15).y)]
+    left_stick = [(lm.part(15).x, lm.part(15).y),
+                  (lm.part(16).x, lm.part(16).y),
+                  (lm.part(26).x, lm.part(15).y),
+                  (lm.part(26).x, lm.part(24).y)]
+    right_stick = [(lm.part(1).x, lm.part(1).y),
+                   (lm.part(0).x, lm.part(0).y),
+                   (lm.part(17).x, lm.part(1).y),
+                   (lm.part(17).x, lm.part(19).y)]
+
+    res = img
+    res = perspective_image(res, "glasses.png", lens)
+    res = perspective_image(res, "stick.png", left_stick)
+    res = perspective_image(res, "stick.png", right_stick)
     return res
 
 
@@ -128,22 +147,22 @@ def apply_mask(flag, image,
     if flag == 1:
         res = change_lips(image, lm)
     elif flag == 2:  # add glasses
+        res = put_glasses(image, lm)
+        #lens = [(lm.part(17).x, lm.part(19).y), (lm.part(26).x, lm.part(24).y), (lm.part(17).x, lm.part(1).y),
+        #        (lm.part(26).x, lm.part(15).y)]
+        #left_stick = [(lm.part(15).x, lm.part(15).y),
+        #              (lm.part(16).x, lm.part(16).y),
+        #              (lm.part(26).x, lm.part(15).y),
+        #              (lm.part(26).x, lm.part(24).y)]
+        #right_stick = [(lm.part(1).x, lm.part(1).y),
+        #               (lm.part(0).x, lm.part(0).y),
+        #               (lm.part(17).x, lm.part(1).y),
+        #               (lm.part(17).x, lm.part(19).y)]
 
-        lens = [(lm.part(17).x, lm.part(19).y), (lm.part(26).x, lm.part(24).y), (lm.part(17).x, lm.part(1).y),
-                (lm.part(26).x, lm.part(15).y)]
-        left_stick = [(lm.part(15).x, lm.part(15).y),
-                      (lm.part(16).x, lm.part(16).y),
-                      (lm.part(26).x, lm.part(15).y),
-                      (lm.part(26).x, lm.part(24).y)]
-        right_stick = [(lm.part(1).x, lm.part(1).y),
-                       (lm.part(0).x, lm.part(0).y),
-                       (lm.part(17).x, lm.part(1).y),
-                       (lm.part(17).x, lm.part(19).y)]
-
-        res = image
-        res = perspective_image(res, "glasses.png", lens)
-        res = perspective_image(res, "stick.png", left_stick)
-        res = perspective_image(res, "stick.png", right_stick)
+        #res = image
+        #res = perspective_image(res, "glasses.png", lens)
+        #res = perspective_image(res, "stick.png", left_stick)
+        #res = perspective_image(res, "stick.png", right_stick)
 
     elif flag == 3:
         res = add_eyebrow_piercing(image, lm)
@@ -157,6 +176,18 @@ def apply_mask(flag, image,
         res = cheek_filter(image, lm, "anime blush cut.png")
     elif flag == 8:
         res = add_beard(image, lm)
+    elif flag == 9:
+        res = cheek_filter(image, lm, "blush.png")
+        res = cheek_filter(res, lm, "lentiggini3_cut.png")
+    elif flag == 10:
+        res = change_lips(image, lm)
+        res = cheek_filter(res, lm, "lentiggini3_cut.png")
+    elif flag == 11:
+        res = change_lips(image, lm)
+        res = cheek_filter(res, lm, "anime blush cut.png")
+    elif flag == 12:
+        res = add_eyebrow_piercing(image, lm)
+        res = add_septum(res, lm)
     else:
         res = image
     return res
@@ -167,7 +198,7 @@ def main():
     landmark_predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
     viewmode = 1
     polygons = 0
-    image_filter = 5
+    image_filter = 1
 
     vid_capture = cv2.VideoCapture(0)
     if not vid_capture.isOpened():
@@ -192,7 +223,7 @@ def main():
         if keyboard.is_pressed('w'):
             polygons = (polygons + 1) % 2
         if keyboard.is_pressed('+'):
-            image_filter = (image_filter + 1) % 9
+            image_filter = (image_filter + 1) % 13
 
         for face in faces:
             landmarks = landmark_predictor(frame, face)
