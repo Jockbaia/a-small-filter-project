@@ -38,12 +38,12 @@ def change_lips(img, lm):
 
 
 def perspective_image(img, foreground_path, myPoints):
-
     foreground = cv2.imread(foreground_path, cv2.IMREAD_UNCHANGED)
     background = img
     background = cv2.cvtColor(background, cv2.COLOR_RGB2RGBA)
 
-    input_pts = np.float32([[0, 0], [foreground.shape[1], 0], [0, foreground.shape[0]], [foreground.shape[1], foreground.shape[0]]])
+    input_pts = np.float32(
+        [[0, 0], [foreground.shape[1], 0], [0, foreground.shape[0]], [foreground.shape[1], foreground.shape[0]]])
     output_pts = np.float32(myPoints)
 
     M = cv2.getPerspectiveTransform(input_pts, output_pts)
@@ -68,7 +68,7 @@ def add_eyebrow_piercing(img, lm):
     ref_pt = (int((lm.part(45).x + lm.part(44).x) / 2), int((lm.part(44).y + lm.part(45).y) / 2))
     height = int((ref_pt[1] - eyebrow_up[1]) / 2)
     width = height
-    half_width = int(width/2)
+    half_width = int(width / 2)
     center = (int((eyebrow_up[0] + ref_pt[0]) / 2), int((eyebrow_up[1] + ref_pt[1]) / 2))
     piercing = cv2.resize(piercing, (width, height))
     roi = mask[center[1] - height:center[1], center[0] + half_width:center[0] + width, :]
@@ -107,9 +107,9 @@ def cheek_filter(img, lm, filter_path):
     down_right = (int((lm.part(13).x + lm.part(16).x) / 2), lm.part(13).y)
     output_pts = np.float32([left_cheekbone, right_cheekbone, down_left, down_right])
     res = perspective_image(img, filter_path, output_pts)
-    #transform = cv2.getPerspectiveTransform(input_pts, output_pts)
-    #out = cv2.warpPerspective(freckles, transform, (img.shape[1], img.shape[0]), flags=cv2.INTER_LINEAR)
-    #res = cv2.addWeighted(img, 1, out, 0.7, 0)
+    # transform = cv2.getPerspectiveTransform(input_pts, output_pts)
+    # out = cv2.warpPerspective(freckles, transform, (img.shape[1], img.shape[0]), flags=cv2.INTER_LINEAR)
+    # res = cv2.addWeighted(img, 1, out, 0.7, 0)
     return res
 
 
@@ -119,55 +119,109 @@ def add_beard(img, lm):
     down_left = (lm.part(1).x, lm.part(8).y)
     down_right = (lm.part(15).x, down_left[1])
     output_pts = np.float32([left_cheekbone, right_cheekbone, down_left, down_right])
-    res = perspective_image(img, "beard.png", output_pts)  #todo: immagine migliore?
+    res = perspective_image(img, "beard.png", output_pts)  # todo: immagine migliore?
+    return res
+
+
+def glasses_filter(image, lens_image, sl_img, sR_image, lens_points, sL_points, sR_points, lm):
+    res = image
+    res = perspective_image(res, lens_image, lens_points)
+    if lm.part(16).x - lm.part(26).x > 5:
+        res = perspective_image(res, sl_img, sL_points)
+    if lm.part(17).x - lm.part(0).x > 5:
+        res = perspective_image(res, sR_image, sR_points)
     return res
 
 
 def apply_mask(flag, image,
                lm):  # flag per identificare il filtro da applicare
+
+    image = cv2.putText(image, "Premi + per cambiare effetto", (30, 25),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5, (178, 255, 0), 1, cv2.LINE_AA, False)
+
+    image = cv2.putText(image, "DEBUG MODE (premi q)", (30, 460),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5, (30, 255, 0), 1, cv2.LINE_AA, False)
+
+    lens = [(lm.part(17).x, lm.part(19).y), (lm.part(26).x, lm.part(24).y), (lm.part(17).x, lm.part(1).y),
+            (lm.part(26).x, lm.part(15).y)]
+    left_stick = [
+        (lm.part(16).x, lm.part(16).y),
+        (lm.part(26).x, lm.part(24).y),
+        (lm.part(15).x, lm.part(15).y),
+        (lm.part(26).x, lm.part(15).y)]
+    right_stick = [
+        (lm.part(17).x, lm.part(19).y),
+        (lm.part(0).x, lm.part(0).y),
+        (lm.part(17).x, lm.part(1).y),
+        (lm.part(1).x, lm.part(1).y)
+    ]
+
     if flag == 1:
         res = change_lips(image, lm)
-    elif flag == 2:  # add glasses
-
-        lens = [(lm.part(17).x, lm.part(19).y), (lm.part(26).x, lm.part(24).y), (lm.part(17).x, lm.part(1).y),
-                (lm.part(26).x, lm.part(15).y)]
-        left_stick = [(lm.part(15).x, lm.part(15).y),
-                      (lm.part(16).x, lm.part(16).y),
-                      (lm.part(26).x, lm.part(15).y),
-                      (lm.part(26).x, lm.part(24).y)]
-        right_stick = [(lm.part(1).x, lm.part(1).y),
-                       (lm.part(0).x, lm.part(0).y),
-                       (lm.part(17).x, lm.part(1).y),
-                       (lm.part(17).x, lm.part(19).y)]
-
-        res = image
-        res = perspective_image(res, "glasses.png", lens)
-        res = perspective_image(res, "stick.png", left_stick)
-        res = perspective_image(res, "stick.png", right_stick)
-
+        res = cv2.putText(res, "Rossetto", (30, 50),
+                          cv2.FONT_HERSHEY_SIMPLEX,
+                          0.7, (211, 211, 211), 1, cv2.LINE_AA, False)
+    elif flag == 2:
+        res = glasses_filter(image, "glasses/heart_lens.png", "glasses/heart_L.png", "glasses/heart_R.png", lens,
+                             left_stick,
+                             right_stick, lm)
+        res = cv2.putText(res, "Occhiali (1/2)", (30, 50),
+                          cv2.FONT_HERSHEY_SIMPLEX,
+                          0.7, (211, 211, 211), 1, cv2.LINE_AA, False)
     elif flag == 3:
-        res = add_eyebrow_piercing(image, lm)
+        res = glasses_filter(image, "glasses/basic_lens.png", "glasses/basic_L.png", "glasses/basic_R.png", lens,
+                             left_stick,
+                             right_stick, lm)
+        res = cv2.putText(res, "Occhiali (2/2)", (30, 50),
+                          cv2.FONT_HERSHEY_SIMPLEX,
+                          0.7, (211, 211, 211), 1, cv2.LINE_AA, False)
     elif flag == 4:
-        res = add_septum(image, lm)
+        res = add_eyebrow_piercing(image, lm)
+        res = cv2.putText(res, "Piercing", (30, 50),
+                          cv2.FONT_HERSHEY_SIMPLEX,
+                          0.7, (211, 211, 211), 1, cv2.LINE_AA, False)
     elif flag == 5:
-        res = cheek_filter(image, lm, "lentiggini3_cut.png")
+        res = add_septum(image, lm)
+        res = cv2.putText(res, "Septum", (30, 50),
+                          cv2.FONT_HERSHEY_SIMPLEX,
+                          0.7, (211, 211, 211), 1, cv2.LINE_AA, False)
     elif flag == 6:
-        res = cheek_filter(image, lm, "blush.png")
+        res = cheek_filter(image, lm, "lentiggini3_cut.png")
+        res = cv2.putText(res, "Lentiggini", (30, 50),
+                          cv2.FONT_HERSHEY_SIMPLEX,
+                          0.7, (211, 211, 211), 1, cv2.LINE_AA, False)
     elif flag == 7:
-        res = cheek_filter(image, lm, "anime blush cut.png")
+        res = cheek_filter(image, lm, "blush.png")
+        res = cv2.putText(res, "Blush (1/2)", (30, 50),
+                          cv2.FONT_HERSHEY_SIMPLEX,
+                          0.7, (211, 211, 211), 1, cv2.LINE_AA, False)
     elif flag == 8:
+        res = cheek_filter(image, lm, "anime blush cut.png")
+        res = cv2.putText(res, "Blush (2/2)", (30, 50),
+                          cv2.FONT_HERSHEY_SIMPLEX,
+                          0.7, (211, 211, 211), 1, cv2.LINE_AA, False)
+    elif flag == 9:
         res = add_beard(image, lm)
+        res = cv2.putText(res, "Barba", (30, 50),
+                          cv2.FONT_HERSHEY_SIMPLEX,
+                          0.7, (211, 211, 211), 1, cv2.LINE_AA, False)
+    elif flag == 10:
+        res = cv2.putText(image, "Disattivato", (30, 50),
+                          cv2.FONT_HERSHEY_SIMPLEX,
+                          0.7, (211, 211, 211), 1, cv2.LINE_AA, False)
     else:
         res = image
+
     return res
 
 
 def main():
     landmark_detector = dlib.get_frontal_face_detector()
     landmark_predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
-    viewmode = 1
-    polygons = 0
-    image_filter = 5
+    viewmode = 0
+    image_filter = 10
 
     vid_capture = cv2.VideoCapture(0)
     if not vid_capture.isOpened():
@@ -189,39 +243,30 @@ def main():
 
         if keyboard.is_pressed('q'):
             viewmode = (viewmode + 1) % 3
-        if keyboard.is_pressed('w'):
-            polygons = (polygons + 1) % 2
         if keyboard.is_pressed('+'):
-            image_filter = (image_filter + 1) % 9
+            image_filter = (image_filter + 1) % 10
 
         for face in faces:
             landmarks = landmark_predictor(frame, face)
 
-            if polygons:
-                left = [(landmarks.part(16).x, landmarks.part(16).y),
-                        (landmarks.part(24).x, landmarks.part(24).y),
-                        (landmarks.part(22).x, landmarks.part(22).y),
-                        (landmarks.part(27).x, landmarks.part(27).y),
-                        (landmarks.part(8).x, landmarks.part(8).y),
-                        (landmarks.part(12).x, landmarks.part(12).y)]
-                right = [(landmarks.part(0).x, landmarks.part(0).y),
-                         (landmarks.part(19).x, landmarks.part(19).y),
-                         (landmarks.part(21).x, landmarks.part(21).y),
-                         (landmarks.part(27).x, landmarks.part(27).y),
-                         (landmarks.part(8).x, landmarks.part(8).y),
-                         (landmarks.part(4).x, landmarks.part(4).y)]
-
-                cv2.fillPoly(frame, np.array([left]), (0, 0, 255))
-                cv2.fillPoly(frame, np.array([right]), (51, 255, 153))
-
             for i in range(68):
+                if viewmode == 0:
+                    image = cv2.putText(frame, "disattivata", (230, 460),
+                                        cv2.FONT_HERSHEY_SIMPLEX,
+                                        0.5, (211, 211, 211), 1, cv2.LINE_AA, False)
                 if viewmode == 1:
                     frame = cv2.circle(frame, (landmarks.part(i).x, landmarks.part(i).y), radius=2, color=(0, 0, 255),
                                        thickness=1)
+                    image = cv2.putText(frame, "indicatori", (230, 460),
+                                        cv2.FONT_HERSHEY_SIMPLEX,
+                                        0.5, (211, 211, 211), 1, cv2.LINE_AA, False)
                 if viewmode == 2:
                     frame = cv2.putText(frame, str(i), (landmarks.part(i).x, landmarks.part(i).y),
                                         cv2.FONT_HERSHEY_SIMPLEX,
                                         0.2, (211, 211, 211), 1, cv2.LINE_AA, False)
+                    image = cv2.putText(frame, "indicatori numerati", (230, 460),
+                                        cv2.FONT_HERSHEY_SIMPLEX,
+                                        0.5, (211, 211, 211), 1, cv2.LINE_AA, False)
                 else:
                     continue
 
