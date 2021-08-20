@@ -123,7 +123,7 @@ def add_beard(img, lm):
 def glasses_filter(image, lens_image, sl_img, sr_image, lm):
     res = image
     lens_points = [(lm.part(17).x, lm.part(19).y), (lm.part(26).x, lm.part(24).y), (lm.part(17).x, lm.part(1).y),
-            (lm.part(26).x, lm.part(15).y)]
+                   (lm.part(26).x, lm.part(15).y)]
     left_stick = [
         (lm.part(16).x, lm.part(16).y),
         (lm.part(26).x, lm.part(24).y),
@@ -140,102 +140,209 @@ def glasses_filter(image, lens_image, sl_img, sr_image, lm):
         res = perspective_image(res, sl_img, left_stick)
     if lm.part(17).x - lm.part(0).x > 5:
         res = perspective_image(res, sr_image, right_stick)
-    return res
+
+    # Nose overlay
+
+    nose = np.array(
+        [[lm.part(27).x, lm.part(27).y], [lm.part(31).x, lm.part(31).y], [lm.part(35).x, lm.part(35).y]],
+        dtype=np.int32)
+
+    mask = np.zeros((image.shape[0], image.shape[1]))
+
+    cv2.fillConvexPoly(mask, nose, 1)
+    mask = mask.astype(np.bool)
+
+    nose_mask = np.zeros_like(image)
+    nose_mask[mask] = image[mask]
+
+    tmp = cv2.cvtColor(nose_mask, cv2.COLOR_BGR2GRAY)
+    _, alpha = cv2.threshold(tmp, 0, 255, cv2.THRESH_BINARY)
+
+    b = g = r = x = 0
+
+    if nose_mask.ndim == 3:
+        b, g, r = cv2.split(nose_mask)
+    elif nose_mask.ndim == 4:
+        b, g, r, alpha = cv2.split(nose_mask)
+
+    rgba = [b, g, r, alpha]
+    nose_png = cv2.merge(rgba, 4)
+    return overlay_png(res, nose_png)
+
+
+def overlay_png(bg, fg):
+    bg = cv2.cvtColor(bg, cv2.COLOR_RGB2RGBA)
+    alpha_background = bg[:, :, 3] / 255.0
+    alpha_foreground = fg[:, :, 3] / 255.0
+
+    for color in range(0, 3):
+        bg[:, :, color] = alpha_foreground * fg[:, :, color] + \
+                          alpha_background * bg[:, :, color] * (1 - alpha_foreground)
+
+    bg[:, :, 3] = (1 - (1 - alpha_foreground) * (1 - alpha_background)) * 255
+
+    return bg
 
 
 def apply_mask(flag, image,
                lm):  # flag per identificare il filtro da applicare
 
-    image = cv2.putText(image, "Premi + o - per cambiare effetto", (30, 25),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        0.5, (178, 255, 0), 1, cv2.LINE_AA, False)
-
-    image = cv2.putText(image, "DEBUG MODE (premi q)", (30, 460),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        0.5, (30, 255, 0), 1, cv2.LINE_AA, False)
+    res = image
 
     if flag == 1:
         res = change_lips(image, lm)
-        res = cv2.putText(res, "Rossetto", (30, 50),
-                          cv2.FONT_HERSHEY_SIMPLEX,
-                          0.7, (211, 211, 211), 1, cv2.LINE_AA, False)
     elif flag == 2:
+        pass
         res = glasses_filter(image, "glasses/heart_lens.png", "glasses/heart_L.png", "glasses/heart_R.png", lm)
-        res = cv2.putText(res, "Occhiali (1/2)", (30, 50),
-                          cv2.FONT_HERSHEY_SIMPLEX,
-                          0.7, (211, 211, 211), 1, cv2.LINE_AA, False)
     elif flag == 3:
+        pass
         res = glasses_filter(image, "glasses/basic_lens.png", "glasses/basic_L.png", "glasses/basic_R.png", lm)
-        res = cv2.putText(res, "Occhiali (2/2)", (30, 50),
-                          cv2.FONT_HERSHEY_SIMPLEX,
-                          0.7, (211, 211, 211), 1, cv2.LINE_AA, False)
     elif flag == 4:
         res = add_eyebrow_piercing(image, lm)
-        res = cv2.putText(res, "Piercing", (30, 50),
-                          cv2.FONT_HERSHEY_SIMPLEX,
-                          0.7, (211, 211, 211), 1, cv2.LINE_AA, False)
+        pass
     elif flag == 5:
         res = add_septum(image, lm)
-        res = cv2.putText(res, "Septum", (30, 50),
-                          cv2.FONT_HERSHEY_SIMPLEX,
-                          0.7, (211, 211, 211), 1, cv2.LINE_AA, False)
     elif flag == 6:
         res = cheek_filter(image, lm, "lentiggini3_cut.png")
-        res = cv2.putText(res, "Lentiggini", (30, 50),
-                          cv2.FONT_HERSHEY_SIMPLEX,
-                          0.7, (211, 211, 211), 1, cv2.LINE_AA, False)
     elif flag == 7:
         res = cheek_filter(image, lm, "blush.png")
-        res = cv2.putText(res, "Blush (1/2)", (30, 50),
-                          cv2.FONT_HERSHEY_SIMPLEX,
-                          0.7, (211, 211, 211), 1, cv2.LINE_AA, False)
     elif flag == 8:
         res = cheek_filter(image, lm, "anime blush cut.png")
-        res = cv2.putText(res, "Blush (2/2)", (30, 50),
-                          cv2.FONT_HERSHEY_SIMPLEX,
-                          0.7, (211, 211, 211), 1, cv2.LINE_AA, False)
     elif flag == 9:
         res = add_beard(image, lm)
-        res = cv2.putText(res, "Barba", (30, 50),
-                          cv2.FONT_HERSHEY_SIMPLEX,
-                          0.7, (211, 211, 211), 1, cv2.LINE_AA, False)
     elif flag == 10:
         res = cheek_filter(image, lm, "blush.png")
         res = cheek_filter(res, lm, "lentiggini3_cut.png")
-        res = cv2.putText(res, "Combo: blush + lentiggini", (30, 50),
-                          cv2.FONT_HERSHEY_SIMPLEX,
-                          0.7, (211, 211, 211), 1, cv2.LINE_AA, False)
     elif flag == 11:
         res = change_lips(image, lm)
         res = cheek_filter(res, lm, "lentiggini3_cut.png")
-        res = cv2.putText(res, "Combo: rossetto + lentiggini", (30, 50),
-                          cv2.FONT_HERSHEY_SIMPLEX,
-                          0.7, (211, 211, 211), 1, cv2.LINE_AA, False)
     elif flag == 12:
         res = change_lips(image, lm)
         res = cheek_filter(res, lm, "anime blush cut.png")
-        res = cv2.putText(res, "Combo: blush + rossetto", (30, 50),
-                          cv2.FONT_HERSHEY_SIMPLEX,
-                          0.7, (211, 211, 211), 1, cv2.LINE_AA, False)
     elif flag == 13:
-        res = add_eyebrow_piercing(image, lm)
+        res = add_eyebrow_piercing(res, lm)
         res = add_septum(res, lm)
-        res = cv2.putText(res, "Combo: piercing + septum", (30, 50),
-                          cv2.FONT_HERSHEY_SIMPLEX,
-                          0.7, (211, 211, 211), 1, cv2.LINE_AA, False)
     else:
-        res = cv2.putText(image, "Disattivato", (30, 50),
-                          cv2.FONT_HERSHEY_SIMPLEX,
-                          0.7, (211, 211, 211), 1, cv2.LINE_AA, False)
+        pass
 
     return res
+
+
+def apply_frame(flag, frame):
+    res = frame
+
+    if flag == 1:
+        pass
+    elif flag == 2:
+        res = overlay_png(frame, cv2.imread("filters/hearts.png", cv2.IMREAD_UNCHANGED))
+    elif flag == 3:
+        res = overlay_png(frame, cv2.imread("filters/rainbow.png", cv2.IMREAD_UNCHANGED))
+    elif flag == 4:
+        res = overlay_png(frame, cv2.imread("filters/test.png", cv2.IMREAD_UNCHANGED))
+    elif flag == 5:
+        res = overlay_png(frame, cv2.imread("filters/test.png", cv2.IMREAD_UNCHANGED))
+
+    return res
+
+
+def GUI_text(frame, viewmode, image_frame, image_filter):
+
+    GUI_desc_color = (145, 85, 29)
+    GUI_filter_color = (0, 84, 163)
+
+    # General
+
+    frame = cv2.putText(frame, "Premi + o - per cambiare effetto", (30, 25),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5, GUI_desc_color, 1, cv2.LINE_AA, False)
+
+    frame = cv2.putText(frame, "DEBUG MODE (premi q)", (30, 460),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5, GUI_desc_color, 1, cv2.LINE_AA, False)
+
+    # Viewmodes
+
+    if viewmode == 0:
+        frame = cv2.putText(frame, "disattivata", (230, 460),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.5, GUI_filter_color, 1, cv2.LINE_AA, False)
+    if viewmode == 1:
+        frame = cv2.putText(frame, "indicatori", (230, 460),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.5, GUI_filter_color, 1, cv2.LINE_AA, False)
+    if viewmode == 2:
+        frame = cv2.putText(frame, "indicatori numerati", (230, 460),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.5, GUI_filter_color, 1, cv2.LINE_AA, False)
+
+    # Filters
+
+    if image_filter == 1:
+        frame = cv2.putText(frame, "Rossetto", (30, 50),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.7, GUI_filter_color, 1, cv2.LINE_AA, False)
+    elif image_filter == 2:
+        frame = cv2.putText(frame, "Occhiali (1/2)", (30, 50),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.7, GUI_filter_color, 1, cv2.LINE_AA, False)
+    elif image_filter == 3:
+        frame = cv2.putText(frame, "Occhiali (2/2)", (30, 50),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.7, GUI_filter_color, 1, cv2.LINE_AA, False)
+    elif image_filter == 4:
+        frame = cv2.putText(frame, "Piercing", (30, 50),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.7, GUI_filter_color, 1, cv2.LINE_AA, False)
+    elif image_filter == 5:
+        frame = cv2.putText(frame, "Septum", (30, 50),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.7, GUI_filter_color, 1, cv2.LINE_AA, False)
+    elif image_filter == 6:
+        frame = cv2.putText(frame, "Lentiggini", (30, 50),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.7, GUI_filter_color, 1, cv2.LINE_AA, False)
+    elif image_filter == 7:
+        frame = cv2.putText(frame, "Blush (1/2)", (30, 50),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.7, GUI_filter_color, 1, cv2.LINE_AA, False)
+    elif image_filter == 8:
+        frame = cv2.putText(frame, "Blush (2/2)", (30, 50),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.7, GUI_filter_color, 1, cv2.LINE_AA, False)
+    elif image_filter == 9:
+        frame = cv2.putText(frame, "Barba", (30, 50),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.7, GUI_filter_color, 1, cv2.LINE_AA, False)
+    elif image_filter == 10:
+        frame = cv2.putText(frame, "Combo: blush + lentiggini", (30, 50),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.7, GUI_filter_color, 1, cv2.LINE_AA, False)
+    elif image_filter == 11:
+        frame = cv2.putText(frame, "Combo: rossetto + lentiggini", (30, 50),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.7, GUI_filter_color, 1, cv2.LINE_AA, False)
+    elif image_filter == 12:
+        frame = cv2.putText(frame, "Combo: blush + rossetto", (30, 50),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.7, GUI_filter_color, 1, cv2.LINE_AA, False)
+    elif image_filter == 13:
+        frame = cv2.putText(frame, "Combo: piercing + septum", (30, 50),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.7, GUI_filter_color, 1, cv2.LINE_AA, False)
+    else:
+        frame = cv2.putText(frame, "Disattivato", (30, 50),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.7, GUI_filter_color, 1, cv2.LINE_AA, False)
+
+    return frame
 
 
 def main():
     landmark_detector = dlib.get_frontal_face_detector()
     landmark_predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
     viewmode = 0
-    image_filter = 10
+    image_filter = 0
+    image_frame = 0
 
     vid_capture = cv2.VideoCapture(0)
     if not vid_capture.isOpened():
@@ -262,32 +369,29 @@ def main():
             image_filter = (image_filter + 1) % 14
         if keyboard.is_pressed('-'):
             image_filter = (image_filter - 1) % 14
+        if keyboard.is_pressed('f'):
+            image_frame = (image_frame + 1) % 5
 
         for face in faces:
             landmarks = landmark_predictor(frame, face)
 
             for i in range(68):
                 if viewmode == 0:
-                    image = cv2.putText(frame, "disattivata", (230, 460),
-                                        cv2.FONT_HERSHEY_SIMPLEX,
-                                        0.5, (211, 211, 211), 1, cv2.LINE_AA, False)
+                    pass
                 if viewmode == 1:
                     frame = cv2.circle(frame, (landmarks.part(i).x, landmarks.part(i).y), radius=2, color=(0, 0, 255),
                                        thickness=1)
-                    image = cv2.putText(frame, "indicatori", (230, 460),
-                                        cv2.FONT_HERSHEY_SIMPLEX,
-                                        0.5, (211, 211, 211), 1, cv2.LINE_AA, False)
                 if viewmode == 2:
                     frame = cv2.putText(frame, str(i), (landmarks.part(i).x, landmarks.part(i).y),
                                         cv2.FONT_HERSHEY_SIMPLEX,
                                         0.2, (211, 211, 211), 1, cv2.LINE_AA, False)
-                    image = cv2.putText(frame, "indicatori numerati", (230, 460),
-                                        cv2.FONT_HERSHEY_SIMPLEX,
-                                        0.5, (211, 211, 211), 1, cv2.LINE_AA, False)
                 else:
                     continue
 
-            final_frame = apply_mask(image_filter, frame, landmarks)
+            final_frame = apply_frame(image_frame, frame)
+            final_frame = apply_mask(image_filter, final_frame, landmarks)
+            final_frame = overlay_png(final_frame, cv2.imread("GUI.png", cv2.IMREAD_UNCHANGED))
+            final_frame = GUI_text(final_frame, viewmode, image_frame, image_filter)
 
         cv2.imshow("main", final_frame)
         cv2.waitKey(1)
