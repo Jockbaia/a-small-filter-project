@@ -107,9 +107,6 @@ def cheek_filter(img, lm, filter_path):
     down_right = (int((lm.part(13).x + lm.part(16).x) / 2), lm.part(13).y)
     output_pts = np.float32([left_cheekbone, right_cheekbone, down_left, down_right])
     res = perspective_image(img, filter_path, output_pts)
-    # transform = cv2.getPerspectiveTransform(input_pts, output_pts)
-    # out = cv2.warpPerspective(freckles, transform, (img.shape[1], img.shape[0]), flags=cv2.INTER_LINEAR)
-    # res = cv2.addWeighted(img, 1, out, 0.7, 0)
     return res
 
 
@@ -208,23 +205,33 @@ def apply_mask(flag, image,
                           cv2.FONT_HERSHEY_SIMPLEX,
                           0.7, (211, 211, 211), 1, cv2.LINE_AA, False)
     elif flag == 10:
+        res = cheek_filter(image, lm, "blush.png")
+        res = cheek_filter(res, lm, "lentiggini3_cut.png")
+        res = cv2.putText(res, "Combo: blush + lentiggini", (30, 50),
+                          cv2.FONT_HERSHEY_SIMPLEX,
+                          0.7, (211, 211, 211), 1, cv2.LINE_AA, False)
+    elif flag == 11:
+        res = change_lips(image, lm)
+        res = cheek_filter(res, lm, "lentiggini3_cut.png")
+        res = cv2.putText(res, "Combo: rossetto + lentiggini", (30, 50),
+                          cv2.FONT_HERSHEY_SIMPLEX,
+                          0.7, (211, 211, 211), 1, cv2.LINE_AA, False)
+    elif flag == 12:
+        res = change_lips(image, lm)
+        res = cheek_filter(res, lm, "anime blush cut.png")
+        res = cv2.putText(res, "Combo: blush + rossetto", (30, 50),
+                          cv2.FONT_HERSHEY_SIMPLEX,
+                          0.7, (211, 211, 211), 1, cv2.LINE_AA, False)
+    elif flag == 13:
+        res = add_eyebrow_piercing(image, lm)
+        res = add_septum(res, lm)
+        res = cv2.putText(res, "Combo: piercing + septum", (30, 50),
+                          cv2.FONT_HERSHEY_SIMPLEX,
+                          0.7, (211, 211, 211), 1, cv2.LINE_AA, False)
+    else:
         res = cv2.putText(image, "Disattivato", (30, 50),
                           cv2.FONT_HERSHEY_SIMPLEX,
                           0.7, (211, 211, 211), 1, cv2.LINE_AA, False)
-    elif flag == 9:
-        res = cheek_filter(image, lm, "blush.png")
-        res = cheek_filter(res, lm, "lentiggini3_cut.png")
-    elif flag == 10:
-        res = change_lips(image, lm)
-        res = cheek_filter(res, lm, "lentiggini3_cut.png")
-    elif flag == 11:
-        res = change_lips(image, lm)
-        res = cheek_filter(res, lm, "anime blush cut.png")
-    elif flag == 12:
-        res = add_eyebrow_piercing(image, lm)
-        res = add_septum(res, lm)
-    else:
-        res = image
 
     return res
 
@@ -256,7 +263,7 @@ def main():
         if keyboard.is_pressed('q'):
             viewmode = (viewmode + 1) % 3
         if keyboard.is_pressed('+'):
-            image_filter = (image_filter + 1) % 13
+            image_filter = (image_filter + 1) % 14
 
         for face in faces:
             landmarks = landmark_predictor(frame, face)
