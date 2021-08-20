@@ -1,9 +1,7 @@
 import cv2
 import dlib
 import keyboard
-import matplotlib
 import numpy as np
-import matplotlib.pyplot as plt
 
 
 def change_lips(img, lm):
