@@ -1,7 +1,9 @@
 import cv2
 import dlib
 import keyboard
+import matplotlib
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 def change_lips(img, lm):
@@ -77,7 +79,7 @@ def add_eyebrow_piercing(img, lm):
 
 
 def add_septum(img, lm):
-    piercing = cv2.imread("piercing.png")
+    piercing = cv2.imread("piercing new.png")
     mask = np.zeros(img.shape, dtype=np.uint8)
     midnose_left = (lm.part(32).x, lm.part(32).y)
     midnose_right = (lm.part(34).x, lm.part(34).y)
@@ -118,28 +120,9 @@ def add_beard(img, lm):
     return res
 
 
-def glasses_filter(image, lens_image, sl_img, sR_image, lens_points, sL_points, sR_points, lm):
+def glasses_filter(image, lens_image, sl_img, sr_image, lm):
     res = image
-    res = perspective_image(res, lens_image, lens_points)
-    if lm.part(16).x - lm.part(26).x > 5:
-        res = perspective_image(res, sl_img, sL_points)
-    if lm.part(17).x - lm.part(0).x > 5:
-        res = perspective_image(res, sR_image, sR_points)
-    return res
-
-
-def apply_mask(flag, image,
-               lm):  # flag per identificare il filtro da applicare
-
-    image = cv2.putText(image, "Premi + per cambiare effetto", (30, 25),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        0.5, (178, 255, 0), 1, cv2.LINE_AA, False)
-
-    image = cv2.putText(image, "DEBUG MODE (premi q)", (30, 460),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        0.5, (30, 255, 0), 1, cv2.LINE_AA, False)
-
-    lens = [(lm.part(17).x, lm.part(19).y), (lm.part(26).x, lm.part(24).y), (lm.part(17).x, lm.part(1).y),
+    lens_points = [(lm.part(17).x, lm.part(19).y), (lm.part(26).x, lm.part(24).y), (lm.part(17).x, lm.part(1).y),
             (lm.part(26).x, lm.part(15).y)]
     left_stick = [
         (lm.part(16).x, lm.part(16).y),
@@ -152,6 +135,24 @@ def apply_mask(flag, image,
         (lm.part(17).x, lm.part(1).y),
         (lm.part(1).x, lm.part(1).y)
     ]
+    res = perspective_image(res, lens_image, lens_points)
+    if lm.part(16).x - lm.part(26).x > 5:
+        res = perspective_image(res, sl_img, left_stick)
+    if lm.part(17).x - lm.part(0).x > 5:
+        res = perspective_image(res, sr_image, right_stick)
+    return res
+
+
+def apply_mask(flag, image,
+               lm):  # flag per identificare il filtro da applicare
+
+    image = cv2.putText(image, "Premi + o - per cambiare effetto", (30, 25),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5, (178, 255, 0), 1, cv2.LINE_AA, False)
+
+    image = cv2.putText(image, "DEBUG MODE (premi q)", (30, 460),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5, (30, 255, 0), 1, cv2.LINE_AA, False)
 
     if flag == 1:
         res = change_lips(image, lm)
@@ -159,16 +160,12 @@ def apply_mask(flag, image,
                           cv2.FONT_HERSHEY_SIMPLEX,
                           0.7, (211, 211, 211), 1, cv2.LINE_AA, False)
     elif flag == 2:
-        res = glasses_filter(image, "glasses/heart_lens.png", "glasses/heart_L.png", "glasses/heart_R.png", lens,
-                             left_stick,
-                             right_stick, lm)
+        res = glasses_filter(image, "glasses/heart_lens.png", "glasses/heart_L.png", "glasses/heart_R.png", lm)
         res = cv2.putText(res, "Occhiali (1/2)", (30, 50),
                           cv2.FONT_HERSHEY_SIMPLEX,
                           0.7, (211, 211, 211), 1, cv2.LINE_AA, False)
     elif flag == 3:
-        res = glasses_filter(image, "glasses/basic_lens.png", "glasses/basic_L.png", "glasses/basic_R.png", lens,
-                             left_stick,
-                             right_stick, lm)
+        res = glasses_filter(image, "glasses/basic_lens.png", "glasses/basic_L.png", "glasses/basic_R.png", lm)
         res = cv2.putText(res, "Occhiali (2/2)", (30, 50),
                           cv2.FONT_HERSHEY_SIMPLEX,
                           0.7, (211, 211, 211), 1, cv2.LINE_AA, False)
@@ -263,6 +260,8 @@ def main():
             viewmode = (viewmode + 1) % 3
         if keyboard.is_pressed('+'):
             image_filter = (image_filter + 1) % 14
+        if keyboard.is_pressed('-'):
+            image_filter = (image_filter - 1) % 14
 
         for face in faces:
             landmarks = landmark_predictor(frame, face)
@@ -290,7 +289,6 @@ def main():
 
             final_frame = apply_mask(image_filter, frame, landmarks)
 
-        # cv2.imshow("main", frame)
         cv2.imshow("main", final_frame)
         cv2.waitKey(1)
 
