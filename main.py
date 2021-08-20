@@ -258,6 +258,7 @@ def main():
         if not vid:
             print("[ERROR] Can't receive frame. Exiting.")
             continue
+        frame = cv2.GaussianBlur(frame, (3, 3), 0)
         faces = landmark_detector(frame)
 
         if keyboard.is_pressed('q'):
