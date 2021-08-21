@@ -1,9 +1,7 @@
 import cv2
 import dlib
 import keyboard
-import matplotlib
 import numpy as np
-import matplotlib.pyplot as plt
 
 
 def change_lips(img, lm):
@@ -238,15 +236,14 @@ def apply_frame(flag, frame):
     elif flag == 3:
         res = overlay_png(frame, cv2.imread("filters/rainbow.png", cv2.IMREAD_UNCHANGED))
     elif flag == 4:
-        res = overlay_png(frame, cv2.imread("filters/test.png", cv2.IMREAD_UNCHANGED))
+        res = overlay_png(frame, cv2.imread("filters/tv.png", cv2.IMREAD_UNCHANGED))
     elif flag == 5:
-        res = overlay_png(frame, cv2.imread("filters/test.png", cv2.IMREAD_UNCHANGED))
+        res = overlay_png(frame, cv2.imread("filters/museum.png", cv2.IMREAD_UNCHANGED))
 
     return res
 
 
 def GUI_text(frame, viewmode, image_frame, image_filter):
-
     GUI_desc_color = (145, 85, 29)
     GUI_filter_color = (0, 84, 163)
 
@@ -370,7 +367,7 @@ def main():
         if keyboard.is_pressed('-'):
             image_filter = (image_filter - 1) % 14
         if keyboard.is_pressed('f'):
-            image_frame = (image_frame + 1) % 5
+            image_frame = (image_frame + 1) % 6
 
         for face in faces:
             landmarks = landmark_predictor(frame, face)
