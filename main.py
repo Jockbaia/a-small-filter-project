@@ -62,7 +62,7 @@ def perspective_image(img, foreground_path, myPoints):
 
 
 def add_eyebrow_piercing(img, lm):
-    piercing = cv2.imread("piercing.png")
+    piercing = cv2.imread("piercing.png", cv2.IMREAD_UNCHANGED)
     mask = np.zeros(img.shape, dtype=np.uint8)
     eyebrow_up = (lm.part(25).x, lm.part(25).y)
     ref_pt = (int((lm.part(45).x + lm.part(44).x) / 2), int((lm.part(44).y + lm.part(45).y) / 2))
@@ -79,6 +79,7 @@ def add_eyebrow_piercing(img, lm):
 
 
 def add_septum(img, lm):
+    img = img[:, :, :3]
     piercing = cv2.imread("piercing new.png")
     mask = np.zeros(img.shape, dtype=np.uint8)
     midnose_left = (lm.part(32).x, lm.part(32).y)
@@ -150,7 +151,7 @@ def glasses_filter(image, lens_image, sl_img, sr_image, lm):
     mask = np.zeros((image.shape[0], image.shape[1]))
 
     cv2.fillConvexPoly(mask, nose, 1)
-    mask = mask.astype(np.bool)
+    mask = mask.astype(bool)
 
     nose_mask = np.zeros_like(image)
     nose_mask[mask] = image[mask]
@@ -158,12 +159,7 @@ def glasses_filter(image, lens_image, sl_img, sr_image, lm):
     tmp = cv2.cvtColor(nose_mask, cv2.COLOR_BGR2GRAY)
     _, alpha = cv2.threshold(tmp, 0, 255, cv2.THRESH_BINARY)
 
-    b = g = r = x = 0
-
-    if nose_mask.ndim == 3:
-        b, g, r = cv2.split(nose_mask)
-    elif nose_mask.ndim == 4:
-        b, g, r, alpha = cv2.split(nose_mask)
+    b, g, r, alpha = cv2.split(nose_mask)
 
     rgba = [b, g, r, alpha]
     nose_png = cv2.merge(rgba, 4)
@@ -192,14 +188,11 @@ def apply_mask(flag, image,
     if flag == 1:
         res = change_lips(image, lm)
     elif flag == 2:
-        pass
         res = glasses_filter(image, "glasses/heart_lens.png", "glasses/heart_L.png", "glasses/heart_R.png", lm)
     elif flag == 3:
-        pass
         res = glasses_filter(image, "glasses/basic_lens.png", "glasses/basic_L.png", "glasses/basic_R.png", lm)
     elif flag == 4:
         res = add_eyebrow_piercing(image, lm)
-        pass
     elif flag == 5:
         res = add_septum(image, lm)
     elif flag == 6:
@@ -340,6 +333,9 @@ def main():
     saving_msg = 0
     landmark_detector = dlib.get_frontal_face_detector()
     landmark_predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
+
+    # Menù
+
     viewmode = 0
     image_filter = 0
     image_frame = 0
@@ -377,36 +373,39 @@ def main():
             cv2.imwrite(filename, saving_frame)
             saving_msg = 1
 
+        final_frame = cv2.cvtColor(frame, cv2.COLOR_RGB2RGBA)
+
         for face in faces:
             landmarks = landmark_predictor(frame, face)
+            final_frame = apply_mask(image_filter, final_frame, landmarks)
 
+        final_frame = apply_frame(image_frame, final_frame)
+        saving_frame = final_frame
+
+        final_frame = overlay_png(final_frame, cv2.imread("GUI/GUI.png", cv2.IMREAD_UNCHANGED))
+
+        if saving_msg:
+            final_frame = overlay_png(final_frame, cv2.imread("GUI/SAVE_overlay.png", cv2.IMREAD_UNCHANGED))
+            final_frame = cv2.putText(final_frame, "Immagine salvata in " + filename, (60, 410),
+                                      cv2.FONT_HERSHEY_SIMPLEX,
+                                      0.5, (0, 255, 255), 1, cv2.LINE_AA, False)
+
+        final_frame = GUI_text(final_frame, viewmode, image_frame, image_filter)
+
+        for face in faces:
             for i in range(68):
                 if viewmode == 0:
                     pass
                 if viewmode == 1:
-                    frame = cv2.circle(frame, (landmarks.part(i).x, landmarks.part(i).y), radius=2, color=(0, 0, 255),
-                                       thickness=1)
+                    final_frame = cv2.circle(final_frame, (landmarks.part(i).x, landmarks.part(i).y), radius=2,
+                                             color=(0, 0, 255),
+                                             thickness=1)
                 if viewmode == 2:
-                    frame = cv2.putText(frame, str(i), (landmarks.part(i).x, landmarks.part(i).y),
-                                        cv2.FONT_HERSHEY_SIMPLEX,
-                                        0.2, (211, 211, 211), 1, cv2.LINE_AA, False)
+                    final_frame = cv2.putText(final_frame, str(i), (landmarks.part(i).x, landmarks.part(i).y),
+                                              cv2.FONT_HERSHEY_SIMPLEX,
+                                              0.2, (211, 211, 211), 1, cv2.LINE_AA, False)
                 else:
                     continue
-
-            final_frame = apply_frame(image_frame, frame)
-            final_frame = apply_mask(image_filter, final_frame, landmarks)
-            saving_frame = final_frame
-            final_frame = overlay_png(final_frame, cv2.imread("GUI/GUI.png", cv2.IMREAD_UNCHANGED))
-
-            if saving_msg:
-                final_frame = overlay_png(final_frame, cv2.imread("GUI/SAVE_overlay.png", cv2.IMREAD_UNCHANGED))
-                final_frame = cv2.putText(final_frame, "Immagine salvata in " + filename, (60, 410),
-                                          cv2.FONT_HERSHEY_SIMPLEX,
-                                          0.5, (0, 255, 255), 1, cv2.LINE_AA, False)
-
-            final_frame = GUI_text(final_frame, viewmode, image_frame, image_filter)
-
-            # Show saved screen
 
         cv2.imshow("main", final_frame)
         cv2.waitKey(1)
