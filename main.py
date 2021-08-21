@@ -2,6 +2,8 @@ import cv2
 import dlib
 import keyboard
 import numpy as np
+import random
+import string
 
 
 def change_lips(img, lm):
@@ -268,7 +270,7 @@ def GUI_text(frame, viewmode, image_frame, image_filter):
                             cv2.FONT_HERSHEY_SIMPLEX,
                             0.5, GUI_filter_color, 1, cv2.LINE_AA, False)
     if viewmode == 2:
-        frame = cv2.putText(frame, "indicatori numerati", (230, 460),
+        frame = cv2.putText(frame, "numerati", (230, 460),
                             cv2.FONT_HERSHEY_SIMPLEX,
                             0.5, GUI_filter_color, 1, cv2.LINE_AA, False)
 
@@ -335,6 +337,7 @@ def GUI_text(frame, viewmode, image_frame, image_filter):
 
 
 def main():
+    saving_msg = 0
     landmark_detector = dlib.get_frontal_face_detector()
     landmark_predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
     viewmode = 0
@@ -368,6 +371,11 @@ def main():
             image_filter = (image_filter - 1) % 14
         if keyboard.is_pressed('f'):
             image_frame = (image_frame + 1) % 6
+        if keyboard.is_pressed('s'):
+            letters = string.ascii_lowercase
+            filename = "saved/" + ''.join(random.choice(letters) for i in range(6)) + ".png"
+            cv2.imwrite(filename, saving_frame)
+            saving_msg = 1
 
         for face in faces:
             landmarks = landmark_predictor(frame, face)
@@ -387,14 +395,25 @@ def main():
 
             final_frame = apply_frame(image_frame, frame)
             final_frame = apply_mask(image_filter, final_frame, landmarks)
-            final_frame = overlay_png(final_frame, cv2.imread("GUI.png", cv2.IMREAD_UNCHANGED))
+            saving_frame = final_frame
+            final_frame = overlay_png(final_frame, cv2.imread("GUI/GUI.png", cv2.IMREAD_UNCHANGED))
+
+            if saving_msg:
+                final_frame = overlay_png(final_frame, cv2.imread("GUI/SAVE_overlay.png", cv2.IMREAD_UNCHANGED))
+                final_frame = cv2.putText(final_frame, "Immagine salvata in " + filename, (60, 410),
+                                          cv2.FONT_HERSHEY_SIMPLEX,
+                                          0.5, (0, 255, 255), 1, cv2.LINE_AA, False)
+
             final_frame = GUI_text(final_frame, viewmode, image_frame, image_filter)
+
+            # Show saved screen
 
         cv2.imshow("main", final_frame)
         cv2.waitKey(1)
 
 
 if __name__ == "__main__":
+
     try:
         main()
     except KeyboardInterrupt:
