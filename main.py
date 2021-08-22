@@ -103,12 +103,14 @@ def cheek_filter(img, lm, filter_path):
 
 
 def add_beard(img, lm):
-    left_cheekbone = (lm.part(1).x, lm.part(1).y)
-    right_cheekbone = (lm.part(15).x, lm.part(15).y)
-    down_left = (lm.part(2).x, int(lm.part(8).y * 1.05))
-    down_right = (lm.part(14).x, down_left[1])
-    output_pts = np.float32([left_cheekbone, right_cheekbone, down_left, down_right])
-    res = perspective_image(img, "filters/beard.png", output_pts)
+
+    sx_points = [(lm.part(1).x, lm.part(1).y), (lm.part(33).x, lm.part(33).y),
+                 (lm.part(1).x, lm.part(8).y), (lm.part(8).x, lm.part(8).y)]
+    dx_points = [(lm.part(33).x, lm.part(33).y), (lm.part(15).x, lm.part(15).y),
+                 (lm.part(8).x, lm.part(8).y), (lm.part(15).x, lm.part(8).y)]
+
+    res = perspective_image(img, "filters/beard_sx.png", sx_points)
+    res = perspective_image(res, "filters/beard_dx.png", dx_points)
     return res
 
 
@@ -248,7 +250,7 @@ def GUI_text(frame, viewmode, image_frame, image_filter):
                         cv2.FONT_HERSHEY_SIMPLEX,
                         0.5, GUI_desc_color, 1, cv2.LINE_AA, False)
 
-    frame = cv2.putText(frame, "DEBUG MODE (premi q)", (30, 460),
+    frame = cv2.putText(frame, "DEBUG MODE (premi x)", (30, 460),
                         cv2.FONT_HERSHEY_SIMPLEX,
                         0.5, GUI_desc_color, 1, cv2.LINE_AA, False)
 
@@ -359,7 +361,7 @@ def main():
         frame = cv2.GaussianBlur(frame, (3, 3), 0)
         faces = landmark_detector(frame)
 
-        if keyboard.is_pressed('q'):
+        if keyboard.is_pressed('x'):
             viewmode = (viewmode + 1) % 3
         if keyboard.is_pressed('+'):
             image_filter = (image_filter + 1) % 14
