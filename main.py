@@ -53,7 +53,7 @@ def perspective_image(img, foreground_path, myPoints):
 
 
 def add_eyebrow_piercing(img, lm):
-    piercing = cv2.imread("piercing.png", cv2.IMREAD_UNCHANGED)
+    piercing = cv2.imread("filters/piercing.png", cv2.IMREAD_UNCHANGED)
     mask = np.zeros(img.shape, dtype=np.uint8)
     eyebrow_up = (lm.part(25).x, lm.part(25).y)
     ref_pt = (int((lm.part(45).x + lm.part(44).x) / 2), int((lm.part(44).y + lm.part(45).y) / 2))
@@ -71,7 +71,7 @@ def add_eyebrow_piercing(img, lm):
 
 def add_septum(img, lm):
     img = img[:, :, :3]
-    piercing = cv2.imread("piercing new.png")
+    piercing = cv2.imread("filters/piercing2.png")
     mask = np.zeros(img.shape, dtype=np.uint8)
     midnose_left = (lm.part(32).x, lm.part(32).y)
     midnose_right = (lm.part(34).x, lm.part(34).y)
@@ -108,7 +108,7 @@ def add_beard(img, lm):
     down_left = (lm.part(2).x, int(lm.part(8).y * 1.05))
     down_right = (lm.part(14).x, down_left[1])
     output_pts = np.float32([left_cheekbone, right_cheekbone, down_left, down_right])
-    res = perspective_image(img, "beard.png", output_pts)
+    res = perspective_image(img, "filters/beard.png", output_pts)
     return res
 
 
@@ -194,23 +194,23 @@ def apply_mask(flag, image,
     elif flag == 5:
         res = add_septum(image, lm)
     elif flag == 6:
-        res = cheek_filter(image, lm, "lentiggini3_cut.png")
+        res = cheek_filter(image, lm, "filters/lentiggini.png")
     elif flag == 7:
-        res = cheek_filter(image, lm, "blush.png")
+        res = cheek_filter(image, lm, "filters/blush.png")
     elif flag == 8:
-        res = cheek_filter(image, lm, "anime blush cut.png")
+        res = cheek_filter(image, lm, "filters/anime_blush.png")
         res = nose_overlay(res, image, lm)
     elif flag == 9:
         res = add_beard(image, lm)
     elif flag == 10:
-        res = cheek_filter(image, lm, "blush.png")
-        res = cheek_filter(res, lm, "lentiggini3_cut.png")
+        res = cheek_filter(image, lm, "filters/blush.png")
+        res = cheek_filter(res, lm, "filters/lentiggini.png")
     elif flag == 11:
         res = change_lips(image, lm)
-        res = cheek_filter(res, lm, "lentiggini3_cut.png")
+        res = cheek_filter(res, lm, "filters/lentiggini.png")
     elif flag == 12:
         res = change_lips(image, lm)
-        res = cheek_filter(res, lm, "anime blush cut.png")
+        res = cheek_filter(res, lm, "filters/anime_blush.png")
         res = nose_overlay(res, image, lm)
     elif flag == 13:
         res = add_eyebrow_piercing(res, lm)
@@ -227,13 +227,13 @@ def apply_frame(flag, frame):
     if flag == 1:
         pass
     elif flag == 2:
-        res = overlay_png(frame, cv2.imread("filters/hearts.png", cv2.IMREAD_UNCHANGED))
+        res = overlay_png(frame, cv2.imread("frames/hearts.png", cv2.IMREAD_UNCHANGED))
     elif flag == 3:
-        res = overlay_png(frame, cv2.imread("filters/rainbow.png", cv2.IMREAD_UNCHANGED))
+        res = overlay_png(frame, cv2.imread("frames/rainbow.png", cv2.IMREAD_UNCHANGED))
     elif flag == 4:
-        res = overlay_png(frame, cv2.imread("filters/tv.png", cv2.IMREAD_UNCHANGED))
+        res = overlay_png(frame, cv2.imread("frames/tv.png", cv2.IMREAD_UNCHANGED))
     elif flag == 5:
-        res = overlay_png(frame, cv2.imread("filters/museum.png", cv2.IMREAD_UNCHANGED))
+        res = overlay_png(frame, cv2.imread("frames/museum.png", cv2.IMREAD_UNCHANGED))
 
     return res
 
@@ -340,7 +340,7 @@ def main():
     image_filter = 0
     image_frame = 0
 
-    vid_capture = cv2.VideoCapture(0)
+    vid_capture = cv2.VideoCapture(0, cv2.CAP_DSHOW)
     if not vid_capture.isOpened():
         print("[ERROR] Cannot open camera")
         exit()
@@ -374,6 +374,8 @@ def main():
             filename = "saved/" + timeDate + "_" + ''.join(random.choice(letters) for i in range(3)) + ".png"
             cv2.imwrite(filename, saving_frame)
             saving_msg = 1
+        if keyboard.is_pressed('q'):
+            break
 
         final_frame = cv2.cvtColor(frame, cv2.COLOR_RGB2RGBA)
 
