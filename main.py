@@ -2,8 +2,9 @@ import cv2
 import dlib
 import keyboard
 import numpy as np
-import random
 import string
+import random
+from datetime import datetime
 
 
 def change_lips(img, lm):
@@ -40,7 +41,6 @@ def change_lips(img, lm):
 def perspective_image(img, foreground_path, myPoints):
     foreground = cv2.imread(foreground_path, cv2.IMREAD_UNCHANGED)
     background = img
-    background = cv2.cvtColor(background, cv2.COLOR_RGB2RGBA)
 
     input_pts = np.float32(
         [[0, 0], [foreground.shape[1], 0], [0, foreground.shape[0]], [foreground.shape[1], foreground.shape[0]]])
@@ -49,16 +49,7 @@ def perspective_image(img, foreground_path, myPoints):
     M = cv2.getPerspectiveTransform(input_pts, output_pts)
     foreground = cv2.warpPerspective(foreground, M, (img.shape[1], img.shape[0]), flags=cv2.INTER_LINEAR)
 
-    alpha_background = background[:, :, 3] / 255.0
-    alpha_foreground = foreground[:, :, 3] / 255.0
-
-    for color in range(0, 3):
-        background[:, :, color] = alpha_foreground * foreground[:, :, color] + \
-                                  alpha_background * background[:, :, color] * (1 - alpha_foreground)
-
-    background[:, :, 3] = (1 - (1 - alpha_foreground) * (1 - alpha_background)) * 255
-
-    return background
+    return overlay_png(background, foreground)
 
 
 def add_eyebrow_piercing(img, lm):
@@ -121,7 +112,7 @@ def add_beard(img, lm):
     return res
 
 
-def glasses_filter(image, lens_image, sl_img, sr_image, lm):
+def glasses_filter(image, lens_image, sl_image, sr_image, lm):
     res = image
     lens_points = [(lm.part(17).x, lm.part(19).y), (lm.part(26).x, lm.part(24).y), (lm.part(17).x, lm.part(1).y),
                    (lm.part(26).x, lm.part(15).y)]
@@ -136,14 +127,33 @@ def glasses_filter(image, lens_image, sl_img, sr_image, lm):
         (lm.part(17).x, lm.part(1).y),
         (lm.part(1).x, lm.part(1).y)
     ]
+
+    # Applying images to webcam feed
+
     res = perspective_image(res, lens_image, lens_points)
     if lm.part(16).x - lm.part(26).x > 5:
-        res = perspective_image(res, sl_img, left_stick)
+        res = perspective_image(res, sl_image, left_stick)
     if lm.part(17).x - lm.part(0).x > 5:
         res = perspective_image(res, sr_image, right_stick)
 
-    # Nose overlay
+    return res
 
+
+def overlay_png(bg, fg):
+    bg = cv2.cvtColor(bg, cv2.COLOR_RGB2RGBA)
+    alpha_background = bg[:, :, 3] / 255.0
+    alpha_foreground = fg[:, :, 3] / 255.0
+
+    for color in range(0, 3):
+        bg[:, :, color] = alpha_foreground * fg[:, :, color] + \
+                          alpha_background * bg[:, :, color] * (1 - alpha_foreground)
+
+    bg[:, :, 3] = (1 - (1 - alpha_foreground) * (1 - alpha_background)) * 255
+
+    return bg
+
+
+def nose_overlay(frame, image, lm):
     nose = np.array(
         [[lm.part(27).x, lm.part(27).y], [lm.part(31).x, lm.part(31).y], [lm.part(35).x, lm.part(35).y]],
         dtype=np.int32)
@@ -163,21 +173,7 @@ def glasses_filter(image, lens_image, sl_img, sr_image, lm):
 
     rgba = [b, g, r, alpha]
     nose_png = cv2.merge(rgba, 4)
-    return overlay_png(res, nose_png)
-
-
-def overlay_png(bg, fg):
-    bg = cv2.cvtColor(bg, cv2.COLOR_RGB2RGBA)
-    alpha_background = bg[:, :, 3] / 255.0
-    alpha_foreground = fg[:, :, 3] / 255.0
-
-    for color in range(0, 3):
-        bg[:, :, color] = alpha_foreground * fg[:, :, color] + \
-                          alpha_background * bg[:, :, color] * (1 - alpha_foreground)
-
-    bg[:, :, 3] = (1 - (1 - alpha_foreground) * (1 - alpha_background)) * 255
-
-    return bg
+    return overlay_png(frame, nose_png)
 
 
 def apply_mask(flag, image,
@@ -189,8 +185,10 @@ def apply_mask(flag, image,
         res = change_lips(image, lm)
     elif flag == 2:
         res = glasses_filter(image, "glasses/heart_lens.png", "glasses/heart_L.png", "glasses/heart_R.png", lm)
+        res = nose_overlay(res, image, lm)
     elif flag == 3:
         res = glasses_filter(image, "glasses/basic_lens.png", "glasses/basic_L.png", "glasses/basic_R.png", lm)
+        res = nose_overlay(res, image, lm)
     elif flag == 4:
         res = add_eyebrow_piercing(image, lm)
     elif flag == 5:
@@ -201,6 +199,7 @@ def apply_mask(flag, image,
         res = cheek_filter(image, lm, "blush.png")
     elif flag == 8:
         res = cheek_filter(image, lm, "anime blush cut.png")
+        res = nose_overlay(res, image, lm)
     elif flag == 9:
         res = add_beard(image, lm)
     elif flag == 10:
@@ -212,6 +211,7 @@ def apply_mask(flag, image,
     elif flag == 12:
         res = change_lips(image, lm)
         res = cheek_filter(res, lm, "anime blush cut.png")
+        res = nose_overlay(res, image, lm)
     elif flag == 13:
         res = add_eyebrow_piercing(res, lm)
         res = add_septum(res, lm)
@@ -369,7 +369,9 @@ def main():
             image_frame = (image_frame + 1) % 6
         if keyboard.is_pressed('s'):
             letters = string.ascii_lowercase
-            filename = "saved/" + ''.join(random.choice(letters) for i in range(6)) + ".png"
+            now = datetime.now()
+            timeDate = now.strftime("%d%m%y_%H%M%S")
+            filename = "saved/" + timeDate + "_" + ''.join(random.choice(letters) for i in range(3)) + ".png"
             cv2.imwrite(filename, saving_frame)
             saving_msg = 1
 
