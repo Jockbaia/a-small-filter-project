@@ -114,9 +114,15 @@ def add_beard(img, lm):
 
 
 def glasses_filter(image, lens_image, sl_image, sr_image, lm):
+
+    # sx e dx dal punto di vista dell'osservatore
+
     res = image
-    lens_points = [(lm.part(17).x, lm.part(19).y), (lm.part(26).x, lm.part(24).y), (lm.part(17).x, lm.part(1).y),
-                   (lm.part(26).x, lm.part(15).y)]
+
+    dx_L = [(lm.part(26).x + lm.part(45).x + lm.part(13).x + lm.part(14).x) * 1/4, (lm.part(26).y + lm.part(45).y + lm.part(13).y + lm.part(14).y) * 1/4]
+    sx_L = [(lm.part(17).x + lm.part(36).x + lm.part(2).x + lm.part(3).x) * 1/4, (lm.part(17).y + lm.part(36).y + lm.part(2).y + lm.part(3).y) * 1/4]
+
+    lens_points = [(lm.part(17).x, lm.part(19).y), (lm.part(26).x, lm.part(24).y), sx_L, dx_L]
     left_stick = [
         (lm.part(16).x, lm.part(16).y),
         (lm.part(26).x, lm.part(24).y),
@@ -156,7 +162,7 @@ def overlay_png(bg, fg):
 
 def nose_overlay(frame, image, lm):
 
-    # sx e dx dall'osservatore
+    # sx e dx dal punto di vista dell'osservatore
 
     sx1 = [lm.part(31).x + ((int(lm.part(29).x) - int(lm.part(31).x)) * (1 / 2)), lm.part(29).y]
     sx2 = [lm.part(31).x + ((int(lm.part(28).x) - int(lm.part(31).x)) * (6 / 7)), lm.part(28).y]
@@ -194,11 +200,11 @@ def nose_overlay(frame, image, lm):
 
 
 def mouth_overlay(frame, image, lm):
-
     mouth = np.array(
         [[lm.part(48).x, lm.part(48).y], [lm.part(49).x, lm.part(49).y], [lm.part(53).x, lm.part(53).y],
-        [lm.part(54).x, lm.part(54).y], [lm.part(55).x, lm.part(55).y], [lm.part(56).x, lm.part(56).y],
-        [lm.part(57).x, lm.part(57).y], [lm.part(58).x, lm.part(58).y], [lm.part(59).x, lm.part(59).y]], dtype=np.int32)
+         [lm.part(54).x, lm.part(54).y], [lm.part(55).x, lm.part(55).y], [lm.part(56).x, lm.part(56).y],
+         [lm.part(57).x, lm.part(57).y], [lm.part(58).x, lm.part(58).y], [lm.part(59).x, lm.part(59).y]],
+        dtype=np.int32)
 
     mask = np.zeros((image.shape[0], image.shape[1]))
 
