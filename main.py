@@ -103,7 +103,6 @@ def cheek_filter(img, lm, filter_path):
 
 
 def add_beard(img, lm):
-
     sx_points = [(lm.part(1).x, lm.part(1).y), (lm.part(33).x, lm.part(33).y),
                  (lm.part(1).x, lm.part(8).y), (lm.part(8).x, lm.part(8).y)]
     dx_points = [(lm.part(33).x, lm.part(33).y), (lm.part(15).x, lm.part(15).y),
@@ -156,13 +155,28 @@ def overlay_png(bg, fg):
 
 
 def nose_overlay(frame, image, lm):
-    nose = np.array(
-        [[lm.part(27).x, lm.part(27).y], [lm.part(31).x, lm.part(31).y], [lm.part(35).x, lm.part(35).y]],
-        dtype=np.int32)
+
+    # sx e dx dall'osservatore
+
+    sx1 = [lm.part(31).x + ((int(lm.part(29).x) - int(lm.part(31).x)) * (1 / 2)), lm.part(29).y]
+    sx2 = [lm.part(31).x + ((int(lm.part(28).x) - int(lm.part(31).x)) * (6 / 7)), lm.part(28).y]
+
+    dx1 = [lm.part(35).x - ((int(lm.part(35).x) - int(lm.part(29).x)) * (1 / 2)), lm.part(29).y]
+    dx2 = [lm.part(35).x - ((int(lm.part(35).x) - int(lm.part(28).x)) * (6 / 7)), lm.part(28).y]
+
+    centernose = [(int(lm.part(39).x) + int(lm.part(42).x)) / 2, (int(lm.part(39).y) + int(lm.part(42).y)) / 2]
+
+    nose1 = np.array(
+        [centernose, dx2, dx1, [lm.part(35).x, lm.part(35).y], [lm.part(33).x, lm.part(33).y],
+         [lm.part(31).x, lm.part(31).y], sx1, sx2], dtype=np.int32)
+    nose2 = np.array([sx1, sx2, centernose, [lm.part(35).x, lm.part(35).y]], dtype=np.int32)
+    nose3 = np.array([dx1, dx2, centernose, [lm.part(31).x, lm.part(31).y]], dtype=np.int32)
 
     mask = np.zeros((image.shape[0], image.shape[1]))
 
-    cv2.fillConvexPoly(mask, nose, 1)
+    cv2.fillConvexPoly(mask, nose1, 1)
+    cv2.fillConvexPoly(mask, nose2, 1)
+    cv2.fillConvexPoly(mask, nose3, 1)
     mask = mask.astype(bool)
 
     nose_mask = np.zeros_like(image)
@@ -175,7 +189,35 @@ def nose_overlay(frame, image, lm):
 
     rgba = [b, g, r, alpha]
     nose_png = cv2.merge(rgba, 4)
+
     return overlay_png(frame, nose_png)
+
+
+def mouth_overlay(frame, image, lm):
+
+    mouth = np.array(
+        [[lm.part(48).x, lm.part(48).y], [lm.part(49).x, lm.part(49).y], [lm.part(53).x, lm.part(53).y],
+        [lm.part(54).x, lm.part(54).y], [lm.part(55).x, lm.part(55).y], [lm.part(56).x, lm.part(56).y],
+        [lm.part(57).x, lm.part(57).y], [lm.part(58).x, lm.part(58).y], [lm.part(59).x, lm.part(59).y]], dtype=np.int32)
+
+    mask = np.zeros((image.shape[0], image.shape[1]))
+
+    cv2.fillConvexPoly(mask, mouth, 1)
+
+    mask = mask.astype(bool)
+
+    mouth_mask = np.zeros_like(image)
+    mouth_mask[mask] = image[mask]
+
+    tmp = cv2.cvtColor(mouth_mask, cv2.COLOR_BGR2GRAY)
+    _, alpha = cv2.threshold(tmp, 0, 255, cv2.THRESH_BINARY)
+
+    b, g, r, alpha = cv2.split(mouth_mask)
+
+    rgba = [b, g, r, alpha]
+    mouth_png = cv2.merge(rgba, 4)
+
+    return overlay_png(frame, mouth_png)
 
 
 def apply_mask(flag, image,
@@ -204,6 +246,7 @@ def apply_mask(flag, image,
         res = nose_overlay(res, image, lm)
     elif flag == 9:
         res = add_beard(image, lm)
+        res = mouth_overlay(res, image, lm)
     elif flag == 10:
         res = cheek_filter(image, lm, "filters/blush.png")
         res = cheek_filter(res, lm, "filters/lentiggini.png")
