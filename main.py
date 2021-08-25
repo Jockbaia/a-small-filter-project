@@ -127,11 +127,11 @@ def glasses_filter(image, lens_image, sl_image, sr_image, lm):
         (lm.part(16).x, lm.part(16).y),
         (lm.part(26).x, lm.part(24).y),
         (lm.part(15).x, lm.part(15).y),
-        (lm.part(26).x, lm.part(15).y)]
+        dx_L]
     right_stick = [
         (lm.part(17).x, lm.part(19).y),
         (lm.part(0).x, lm.part(0).y),
-        (lm.part(17).x, lm.part(1).y),
+        sx_L,
         (lm.part(1).x, lm.part(1).y)
     ]
 
