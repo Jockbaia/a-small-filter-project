@@ -9,6 +9,6 @@ Questo progetto rappresenta un tentativo di applicazione di tecniche e concetti 
 ### Guida all'installazione
 - Clonare la repository
 - Posizionarsi nella directory di root del progetto 
-- Creare un nuovo virtual environment
+- Creare un nuovo virtual environment o utilizzare l'ambiente del sistema operativo (requisito Python 3+)
 - Installare i requisiti attraverso `pip install -r requirements.txt`
 - Avviare il programma attraverso `python main.py`
