@@ -1,14 +1,22 @@
-## Image Processing and Computer Vision: creazione di filtri usando OpenCV
+<p align="center">
+  <img style="width:200px" src="https://i.imgur.com/nzGM1Bo.png" alt="small-logo"/>
+</p>
 
-**Macaluso Antonio e Sergio Aurora Anna Pia**
+### ℹ️ About
 
-Questo progetto rappresenta un tentativo di applicazione di tecniche e concetti visti durante il corso di Image Processing and Computer Vision con lo scopo di realizzare qualcosa che l’utente medio di uno smartphone usa (quasi) quotidianamente nel proprio tempo libero, ossia i filtri. Ce ne sono centinaia, se non migliaia, già a disposizione degli utenti su ogni social network, ma esistono anche specifiche app dedicate all’applicazione di filtri estremamente variegati, più o meno complessi. Il nostro progetto però non ha l’obiettivo di fornire filtri migliori o più elaborati rispetti a quelli già esistenti, ma piuttosto vuole concentrarsi su ciò che è possibile realizzare dopo un corso di base sull’elaborazione di immagini, con alcuni approfondimenti che si sono resi necessari per ottenere un risultato soddisfacente. In seguito, illustreremo in generale le tecniche, le librerie e i metodi usati, per poi concentrarci sui singoli filtri.
+This project is an attempt to apply techniques and concepts learnt in the Image Processing and Computer Vision course, aiming to implement something that the average smartphone user uses (almost) every day: filters. There are already hundreds, if not thousands, available on every social network, but there are also specific applications dedicated to applying very different, more or less complex filters. Our project, however, does not aim to provide filters that are better or more complex than those that already exist. Instead, we want to focus on what can be achieved after a basic course in image processing, with some in-depth studies that were necessary to achieve a satisfactory result. After a general explanation of the techniques, libraries and methods used, we will have a closer look at the individual filters.
 
-📄 La relazione del progetto (in formato PDF) è salvata con nome **relazione.pdf** nella cartella principale di questa repository
+📄 **The project report (in PDF format and written in Italian) is saved as **relazione.pdf** in the main folder of this repository.**
 
-### Guida all'installazione
-- Clonare la repository
-- Posizionarsi nella directory di root del progetto 
-- Creare un nuovo virtual environment o utilizzare l'ambiente del sistema operativo (requisito Python 3+)
-- Installare i requisiti attraverso `pip install -r requirements.txt`
-- Avviare il programma attraverso `python main.py`
+### 👤 The team
+
+- Macaluso Antonio
+- Sergio Aurora Anna Pia
+
+### 💻 Installation guide
+
+- Clone the repository
+- Navigate to the project root directory
+- Create a new virtual environment or use the operating system environment (Python 3+ required)
+- Install the requirements via `pip install -r requirements.txt`
+- Run the program using `python main.py`
